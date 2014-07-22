@@ -37,5 +37,11 @@ void PcMesher::writeMesh(string _fileName){
 
 
 int main (int argc, char *argv[]){
+
+    PcMesher cloud;
+
+    cloud.readMesh(argv[1]);
+    cloud.writeMesh("test.ply");
+
     return 0;
 }

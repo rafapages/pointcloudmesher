@@ -17,6 +17,10 @@ public:
 
     PcMesher();
 
+    // Estimate normals?
+
+
+    // I/O functions
     void readMesh(string _fileName);
     void writeMesh(string _fileName);
 

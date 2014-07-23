@@ -19,7 +19,7 @@ public:
     ~PcMesher();
 
     // Estimate the normals of a cloud and store them
-    void estimateNormals(PointCloud<PointXYZRGBNormal>::Ptr& _cloud);
+    void estimateNormals(const unsigned int _index);
     void estimateAllNormals();
 
     // I/O functions

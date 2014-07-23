@@ -87,10 +87,7 @@ int main (int argc, char *argv[]){
 
     cloud.readMesh(argv[1]);
 
-//    PointCloud<PointXYZRGBNormal>::Ptr ptr(&(cloud.pointClouds_[0]));
-//    cloud.estimateNormals(ptr);
     cloud.estimateAllNormals();
-
 
     cloud.writeMesh("test.ply");
 

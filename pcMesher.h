@@ -16,15 +16,17 @@ class PcMesher{
 public:
 
     PcMesher();
+    ~PcMesher();
 
-    // Estimate normals?
-
+    // Estimate the normals of a cloud and store them
+    void estimateNormals(PointCloud<PointXYZRGBNormal>::Ptr& _cloud);
+    void estimateAllNormals();
 
     // I/O functions
     void readMesh(string _fileName);
     void writeMesh(string _fileName);
 
-private:
+//private:
 
     vector<PointCloud<PointXYZRGBNormal> > pointClouds_;
 

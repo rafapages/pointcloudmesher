@@ -26,9 +26,9 @@ public:
     void readMesh(string _fileName);
     void writeMesh(string _fileName);
 
-//private:
+private:
 
-    vector<PointCloud<PointXYZRGBNormal> > pointClouds_;
+    vector<PointCloud<PointXYZRGBNormal>::Ptr > pointClouds_;
 
 
 };

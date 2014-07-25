@@ -28,7 +28,6 @@ public:
     // Plane segmentation
     void planeSegmentation();
 
-
     // Cilinder segmentation
     void cilinderSegmentation();
 

@@ -1,5 +1,9 @@
 #include <pcl/features/normal_3d.h>
 
+#include <pcl/kdtree/kdtree_flann.h>
+
+#include <pcl/surface/poisson.h>
+
 #include "pcMesher.h"
 
 PcMesher::PcMesher(){
@@ -48,6 +52,20 @@ void PcMesher::estimateAllNormals(){
     }
 }
 
+void PcMesher::surfaceReconstruction(const unsigned int _index){
+
+    PointCloud<PointXYZRGBNormal>::Ptr cloud = pointClouds_[_index];
+
+    Poisson<PointXYZRGBNormal> poisson;
+    poisson.setDepth(9);
+    poisson.setInputCloud(cloud);
+    PolygonMesh mesh;
+    poisson.reconstruct(mesh);
+
+    io::savePLYFile("triangles.ply", mesh);
+
+}
+
 
 
 void PcMesher::readMesh(string _fileName){
@@ -90,6 +108,7 @@ int main (int argc, char *argv[]){
     cloud.readMesh(argv[1]);
 
     cloud.estimateAllNormals();
+    cloud.surfaceReconstruction(0);
 
     cloud.writeMesh("test.ply");
 

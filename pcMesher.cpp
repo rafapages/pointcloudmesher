@@ -4,10 +4,17 @@
 
 PcMesher::PcMesher(){
 
+    pointClouds_.clear();
+    nClouds_ = 0;
+
 }
 
 PcMesher::~PcMesher(){
 
+}
+
+unsigned int PcMesher::getNClouds(){
+    return nClouds_;
 }
 
 void PcMesher::estimateNormals(const unsigned int _index){
@@ -58,6 +65,7 @@ void PcMesher::readMesh(string _fileName){
     }
 
     pointClouds_.push_back(cloud);
+    nClouds_ = 1;
 
 }
 

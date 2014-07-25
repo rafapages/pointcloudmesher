@@ -12,7 +12,6 @@ PcMesher::~PcMesher(){
 
 void PcMesher::estimateNormals(const unsigned int _index){
 
-
     // Create the normal estimation class, and pass the input dataset to it
     PointCloud<PointXYZRGBNormal>::Ptr cloud = pointClouds_[_index];
     NormalEstimation<PointXYZRGBNormal, Normal> ne;
@@ -27,7 +26,7 @@ void PcMesher::estimateNormals(const unsigned int _index){
     PointCloud<Normal>::Ptr cloud_normals (new PointCloud<Normal>);
 
     // Use all neighbors in a sphere of radius 3cm
-    ne.setRadiusSearch (0.03); // <--------------------- IT'S IMPORTANT TO DETERMINE THIS NUMBER PROPERLY
+    ne.setRadiusSearch (0.103); // <--------------------- IT'S IMPORTANT TO DETERMINE THIS NUMBER PROPERLY
 
     // Compute the features
     ne.compute (*cloud_normals);

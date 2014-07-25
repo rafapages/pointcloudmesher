@@ -14,7 +14,8 @@ void PcMesher::estimateNormals(const unsigned int _index){
 
     // Create the normal estimation class, and pass the input dataset to it
     PointCloud<PointXYZRGBNormal>::Ptr cloud = pointClouds_[_index];
-    NormalEstimation<PointXYZRGBNormal, Normal> ne;
+    NormalEstimation<PointXYZRGBNormal, PointXYZRGBNormal> ne;
+
     ne.setInputCloud(cloud);
 
     // Create an empty kdtree representation, and pass it to the normal estimation object.
@@ -22,17 +23,12 @@ void PcMesher::estimateNormals(const unsigned int _index){
     search::KdTree<PointXYZRGBNormal>::Ptr tree (new search::KdTree<PointXYZRGBNormal> ());
     ne.setSearchMethod (tree);
 
-    // Output datasets
-    PointCloud<Normal>::Ptr cloud_normals (new PointCloud<Normal>);
-
     // Use all neighbors in a sphere of radius 3cm
     ne.setRadiusSearch (0.103); // <--------------------- IT'S IMPORTANT TO DETERMINE THIS NUMBER PROPERLY
 
     // Compute the features
-    ne.compute (*cloud_normals);
+    ne.compute (*cloud);
 
-    // Concatenate the XYZ and normal fields*
-    concatenateFields(*cloud, *cloud_normals, *cloud);
 }
 
 

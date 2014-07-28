@@ -1,8 +1,18 @@
+#include <pcl/io/ply_io.h>
+#include <pcl/io/pcd_io.h>
+
 #include <pcl/features/normal_3d.h>
 
 #include <pcl/kdtree/kdtree_flann.h>
 
 #include <pcl/surface/poisson.h>
+
+#include <pcl/ModelCoefficients.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/extract_indices.h>
 
 #include "pcMesher.h"
 
@@ -51,6 +61,68 @@ void PcMesher::estimateAllNormals(){
 
     }
 }
+
+void PcMesher::planeSegmentation(){
+
+    PointCloud<PointXYZRGBNormal>::Ptr cloud = pointClouds_[0];
+    PointCloud<PointXYZRGBNormal>::Ptr cloud_p (new PointCloud<PointXYZRGBNormal>);
+    PointCloud<PointXYZRGBNormal>::Ptr cloud_f (new PointCloud<PointXYZRGBNormal>);
+
+
+      ModelCoefficients::Ptr coefficients (new ModelCoefficients ());
+      PointIndices::Ptr inliers (new PointIndices ());
+      // Create the segmentation object
+      SACSegmentation<PointXYZRGBNormal> seg;
+      // Optional
+      seg.setOptimizeCoefficients (true);
+      // Mandatory
+      seg.setModelType (SACMODEL_PLANE);
+      seg.setMethodType (SAC_RANSAC);
+      seg.setMaxIterations (1000);
+      seg.setDistanceThreshold (0.01);
+
+      // Create the filtering object
+      ExtractIndices<PointXYZRGBNormal> extract;
+
+      int i = 0, nr_points = (int) cloud->points.size ();
+      // While 30% of the original cloud is still there
+      while (cloud->points.size () > 0.3 * nr_points)
+      {
+        // Segment the largest planar component from the remaining cloud
+        seg.setInputCloud (cloud);
+        seg.segment (*inliers, *coefficients);
+        if (inliers->indices.size () == 0)
+        {
+          cerr << "Could not estimate a planar model for the given dataset." << endl;
+          break;
+        }
+
+        // Extract the inliers
+        extract.setInputCloud (cloud);
+        extract.setIndices (inliers);
+        extract.setNegative (false);
+        extract.filter (*cloud_p);
+        cerr << "PointCloud representing the planar component: " << cloud_p->width * cloud_p->height << " data points." << i << endl;
+
+        stringstream ss;
+        ss << "test_" << i << ".ply";
+        io::savePLYFile(ss.str(), *cloud_p);
+
+        pointClouds_.push_back(cloud_p);
+
+        // Create the filtering object
+        extract.setNegative (true);
+        extract.filter (*cloud_f);
+        cloud.swap (cloud_f);
+        i++;
+      }
+
+      cerr << pointClouds_.size() << endl;
+
+
+
+}
+
 
 void PcMesher::surfaceReconstruction(const unsigned int _index){
 
@@ -107,8 +179,10 @@ int main (int argc, char *argv[]){
 
     cloud.readMesh(argv[1]);
 
+    cloud.planeSegmentation();
     cloud.estimateAllNormals();
     cloud.surfaceReconstruction(0);
+
 
     cloud.writeMesh("test.ply");
 

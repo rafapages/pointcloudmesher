@@ -37,13 +37,13 @@ public:
 
     // I/O functions
     void readMesh(string _fileName);
+    void writeOneMesh(const unsigned int _index, string _fileName);
     void writeMesh(string _fileName);
 
 private:
 
     vector<PointCloud<PointXYZRGBNormal>::Ptr > pointClouds_;
     unsigned int nClouds_;
-
 
 };
 

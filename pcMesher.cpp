@@ -45,7 +45,7 @@ void PcMesher::estimateNormals(const unsigned int _index){
     ne.setSearchMethod (tree);
 
     // Use all neighbors in a sphere of radius 3cm
-    ne.setRadiusSearch (0.103); // <--------------------- IT'S IMPORTANT TO DETERMINE THIS NUMBER PROPERLY
+    ne.setRadiusSearch (1.03); // <--------------------- IT'S IMPORTANT TO DETERMINE THIS NUMBER PROPERLY
 
     // Compute the features
     ne.compute (*cloud);
@@ -69,32 +69,32 @@ void PcMesher::planeSegmentation(){
     PointCloud<PointXYZRGBNormal>::Ptr cloud_f (new PointCloud<PointXYZRGBNormal>);
 
 
-      ModelCoefficients::Ptr coefficients (new ModelCoefficients ());
-      PointIndices::Ptr inliers (new PointIndices ());
-      // Create the segmentation object
-      SACSegmentation<PointXYZRGBNormal> seg;
-      // Optional
-      seg.setOptimizeCoefficients (true);
-      // Mandatory
-      seg.setModelType (SACMODEL_PLANE);
-      seg.setMethodType (SAC_RANSAC);
-      seg.setMaxIterations (1000);
-      seg.setDistanceThreshold (0.01);
+    ModelCoefficients::Ptr coefficients (new ModelCoefficients ());
+    PointIndices::Ptr inliers (new PointIndices ());
+    // Create the segmentation object
+    SACSegmentation<PointXYZRGBNormal> seg;
+    // Optional
+    seg.setOptimizeCoefficients (true);
+    // Mandatory
+    seg.setModelType (SACMODEL_PLANE);
+    seg.setMethodType (SAC_RANSAC);
+    seg.setMaxIterations (1000);
+    seg.setDistanceThreshold (0.01);
 
-      // Create the filtering object
-      ExtractIndices<PointXYZRGBNormal> extract;
+    // Create the filtering object
+    ExtractIndices<PointXYZRGBNormal> extract;
 
-      int i = 0, nr_points = (int) cloud->points.size ();
-      // While 30% of the original cloud is still there
-      while (cloud->points.size () > 0.3 * nr_points)
-      {
+    int i = 0, nr_points = (int) cloud->points.size ();
+    // While 30% of the original cloud is still there
+    while (cloud->points.size () > 0.3 * nr_points)
+    {
         // Segment the largest planar component from the remaining cloud
         seg.setInputCloud (cloud);
         seg.segment (*inliers, *coefficients);
         if (inliers->indices.size () == 0)
         {
-          cerr << "Could not estimate a planar model for the given dataset." << endl;
-          break;
+            cerr << "Could not estimate a planar model for the given dataset." << endl;
+            break;
         }
 
         // Extract the inliers
@@ -108,18 +108,18 @@ void PcMesher::planeSegmentation(){
         ss << "test_" << i << ".ply";
         io::savePLYFile(ss.str(), *cloud_p);
 
-        pointClouds_.push_back(cloud_p);
+        // We create a pointer to a copy of the plane cloud to be able to store properly
+        PointCloud<PointXYZRGBNormal>::Ptr plane_cloud = boost::make_shared<PointCloud<PointXYZRGBNormal> >(*cloud_p);
+
+        pointClouds_.push_back(plane_cloud);
+        nClouds_++;
 
         // Create the filtering object
         extract.setNegative (true);
         extract.filter (*cloud_f);
         cloud.swap (cloud_f);
         i++;
-      }
-
-      cerr << pointClouds_.size() << endl;
-
-
+    }
 
 }
 
@@ -159,6 +159,15 @@ void PcMesher::readMesh(string _fileName){
 
 }
 
+void PcMesher::writeOneMesh(const unsigned int _index, string _fileName){
+
+    PointCloud<PointXYZRGBNormal> outPointCloud = *pointClouds_[_index];
+
+    io::savePLYFile(_fileName, outPointCloud);
+
+}
+
+
 // All the point clouds in the vector are concatenated and printed into one file
 void PcMesher::writeMesh(string _fileName){
 
@@ -178,13 +187,22 @@ int main (int argc, char *argv[]){
     PcMesher cloud;
 
     cloud.readMesh(argv[1]);
+    cloud.writeMesh("input.ply");
 
     cloud.planeSegmentation();
     cloud.estimateAllNormals();
     cloud.surfaceReconstruction(0);
 
+    for (unsigned int i = 0; i < cloud.getNClouds(); i++){
 
-    cloud.writeMesh("test.ply");
+        stringstream ss;
+        ss << "out_" << i << ".ply";
+        cloud.writeOneMesh(i, ss.str());
+
+    }
+
+    cloud.writeMesh("output.ply");
+
 
     return 0;
 }

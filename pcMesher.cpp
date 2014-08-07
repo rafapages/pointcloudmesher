@@ -1,3 +1,6 @@
+#define PCL_NO_PRECOMPILE
+
+
 #include <pcl/io/ply_io.h>
 #include <pcl/io/pcd_io.h>
 
@@ -34,14 +37,14 @@ unsigned int PcMesher::getNClouds(){
 void PcMesher::estimateNormals(const unsigned int _index){
 
     // Create the normal estimation class, and pass the input dataset to it
-    PointCloud<PointXYZRGBNormal>::Ptr cloud = pointClouds_[_index];
-    NormalEstimation<PointXYZRGBNormal, PointXYZRGBNormal> ne;
+    PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[_index];
+    NormalEstimation<PointXYZRGBNormalCam, PointXYZRGBNormalCam> ne;
 
     ne.setInputCloud(cloud);
 
     // Create an empty kdtree representation, and pass it to the normal estimation object.
     // Its content will be filled inside the object, based on the given input dataset (as no other search surface is given).
-    search::KdTree<PointXYZRGBNormal>::Ptr tree (new search::KdTree<PointXYZRGBNormal> ());
+    search::KdTree<PointXYZRGBNormalCam>::Ptr tree (new search::KdTree<PointXYZRGBNormalCam> ());
     ne.setSearchMethod (tree);
 
     // Use all neighbors in a sphere of radius 3cm
@@ -64,15 +67,15 @@ void PcMesher::estimateAllNormals(){
 
 void PcMesher::planeSegmentation(){
 
-    PointCloud<PointXYZRGBNormal>::Ptr cloud = pointClouds_[0];
-    PointCloud<PointXYZRGBNormal>::Ptr cloud_p (new PointCloud<PointXYZRGBNormal>);
-    PointCloud<PointXYZRGBNormal>::Ptr cloud_f (new PointCloud<PointXYZRGBNormal>);
+    PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[0];
+    PointCloud<PointXYZRGBNormalCam>::Ptr cloud_p (new PointCloud<PointXYZRGBNormalCam>);
+    PointCloud<PointXYZRGBNormalCam>::Ptr cloud_f (new PointCloud<PointXYZRGBNormalCam>);
 
 
     ModelCoefficients::Ptr coefficients (new ModelCoefficients ());
     PointIndices::Ptr inliers (new PointIndices ());
     // Create the segmentation object
-    SACSegmentation<PointXYZRGBNormal> seg;
+    SACSegmentation<PointXYZRGBNormalCam> seg;
     // Optional
     seg.setOptimizeCoefficients (true);
     // Mandatory
@@ -81,8 +84,9 @@ void PcMesher::planeSegmentation(){
     seg.setMaxIterations (1000);
     seg.setDistanceThreshold (0.01);
 
+
     // Create the filtering object
-    ExtractIndices<PointXYZRGBNormal> extract;
+    ExtractIndices<PointXYZRGBNormalCam> extract;
 
     int i = 0, nr_points = (int) cloud->points.size ();
     // While 30% of the original cloud is still there
@@ -93,7 +97,7 @@ void PcMesher::planeSegmentation(){
         seg.segment (*inliers, *coefficients);
         if (inliers->indices.size () == 0)
         {
-            cerr << "Could not estimate a planar model for the given dataset." << endl;
+            std::cerr << "Could not estimate a planar model for the given dataset." << std::endl;
             break;
         }
 
@@ -102,14 +106,14 @@ void PcMesher::planeSegmentation(){
         extract.setIndices (inliers);
         extract.setNegative (false);
         extract.filter (*cloud_p);
-        cerr << "PointCloud representing the planar component: " << cloud_p->width * cloud_p->height << " data points." << i << endl;
+        std::cerr << "PointCloud representing the planar component: " << cloud_p->width * cloud_p->height << " data points." << i << std::endl;
 
         stringstream ss;
         ss << "test_" << i << ".ply";
         io::savePLYFile(ss.str(), *cloud_p);
 
         // We create a pointer to a copy of the plane cloud to be able to store properly
-        PointCloud<PointXYZRGBNormal>::Ptr plane_cloud = boost::make_shared<PointCloud<PointXYZRGBNormal> >(*cloud_p);
+        PointCloud<PointXYZRGBNormalCam>::Ptr plane_cloud = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(*cloud_p);
 
         pointClouds_.push_back(plane_cloud);
         nClouds_++;
@@ -126,15 +130,17 @@ void PcMesher::planeSegmentation(){
 
 void PcMesher::surfaceReconstruction(const unsigned int _index){
 
-    PointCloud<PointXYZRGBNormal>::Ptr cloud = pointClouds_[_index];
+    PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[_index];
 
-    Poisson<PointXYZRGBNormal> poisson;
+    Poisson<PointXYZRGBNormalCam> poisson;
     poisson.setDepth(9);
     poisson.setInputCloud(cloud);
     PolygonMesh mesh;
     poisson.reconstruct(mesh);
 
-    io::savePLYFile("triangles.ply", mesh);
+    stringstream ss;
+    ss << "triangles_" << _index << ".ply";
+    io::savePLYFile(ss.str(), mesh);
 
 }
 
@@ -143,10 +149,10 @@ void PcMesher::surfaceReconstruction(const unsigned int _index){
 void PcMesher::readMesh(string _fileName){
 
     // This cloud is a temporal one which will be stored in the cloud vector
-    PointCloud<PointXYZRGBNormal>::Ptr cloud (new PointCloud<PointXYZRGBNormal>);
+    PointCloud<PointXYZRGBNormalCam>::Ptr cloud (new PointCloud<PointXYZRGBNormalCam>);
 
     // Cloud file is loaded
-    if (io::loadPLYFile<PointXYZRGBNormal>(_fileName, *cloud) == -1){
+    if (io::loadPLYFile<PointXYZRGBNormalCam>(_fileName, *cloud) == -1){
         string message("Couldn't read file ");
         message.append(_fileName);
         message.append(" \n");
@@ -161,7 +167,7 @@ void PcMesher::readMesh(string _fileName){
 
 void PcMesher::writeOneMesh(const unsigned int _index, string _fileName){
 
-    PointCloud<PointXYZRGBNormal> outPointCloud = *pointClouds_[_index];
+    PointCloud<PointXYZRGBNormalCam> outPointCloud = *pointClouds_[_index];
 
     io::savePLYFile(_fileName, outPointCloud);
 
@@ -171,7 +177,7 @@ void PcMesher::writeOneMesh(const unsigned int _index, string _fileName){
 // All the point clouds in the vector are concatenated and printed into one file
 void PcMesher::writeMesh(string _fileName){
 
-    PointCloud<PointXYZRGBNormal> outPointCloud;
+    PointCloud<PointXYZRGBNormalCam> outPointCloud;
 
     for (unsigned int i = 0; i < pointClouds_.size(); i++){
         outPointCloud += *pointClouds_[i];
@@ -191,7 +197,7 @@ int main (int argc, char *argv[]){
 
     cloud.planeSegmentation();
     cloud.estimateAllNormals();
-    cloud.surfaceReconstruction(0);
+//    cloud.surfaceReconstruction(0);
 
     for (unsigned int i = 0; i < cloud.getNClouds(); i++){
 
@@ -199,6 +205,7 @@ int main (int argc, char *argv[]){
         ss << "out_" << i << ".ply";
         cloud.writeOneMesh(i, ss.str());
 
+//        cloud.surfaceReconstruction(i);
     }
 
     cloud.writeMesh("output.ply");

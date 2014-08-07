@@ -4,11 +4,9 @@
 #include <iostream>
 #include <stdio.h>
 
-#include <pcl/point_types.h>
+#include "pointXYZRGBNormalCam.h"
 
-
-using namespace std;
-using namespace pcl;
+//using namespace pcl;
 
 class PcMesher{
 
@@ -42,7 +40,7 @@ public:
 
 private:
 
-    vector<PointCloud<PointXYZRGBNormal>::Ptr > pointClouds_;
+    std::vector<PointCloud<PointXYZRGBNormalCam>::Ptr > pointClouds_;
     unsigned int nClouds_;
 
 };

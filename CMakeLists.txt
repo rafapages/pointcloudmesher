@@ -8,5 +8,5 @@ include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-add_executable(pcMesher pcMesher.cpp)
+add_executable(pcMesher pcMesher.cpp camera.cpp)
 target_link_libraries(pcMesher ${PCL_LIBRARIES})

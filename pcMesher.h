@@ -6,8 +6,6 @@
 
 #include "pointXYZRGBNormalCam.h"
 
-//using namespace pcl;
-
 class PcMesher{
 
 public:

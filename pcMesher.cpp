@@ -18,6 +18,7 @@
 #include <pcl/filters/extract_indices.h>
 
 #include "pcMesher.h"
+#include "camera.h"
 
 PcMesher::PcMesher(){
 

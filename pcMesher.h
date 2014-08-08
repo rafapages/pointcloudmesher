@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include "pointXYZRGBNormalCam.h"
+#include "camera.h"
 
 class PcMesher{
 
@@ -32,21 +33,19 @@ public:
 
 
     // I/O functions
-    void readMesh(string _fileName);
-    void writeOneMesh(const unsigned int _index, string _fileName);
-    void writeMesh(string _fileName);
+    void readMesh(std::string _fileName);
+    void writeOneMesh(const unsigned int _index, std::string _fileName);
+    void writeMesh(std::string _fileName);
+    void bundlerReader(std::string _filename);
 
 private:
 
     std::vector<PointCloud<PointXYZRGBNormalCam>::Ptr > pointClouds_;
     unsigned int nClouds_;
 
+    std::vector<Camera> cameras_;
+    unsigned int nCameras_;
+
 };
-
-
-
-
-
-
 
 #endif

@@ -1,6 +1,5 @@
 #define PCL_NO_PRECOMPILE
 
-
 #include <pcl/io/ply_io.h>
 #include <pcl/io/pcd_io.h>
 
@@ -17,8 +16,10 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/extract_indices.h>
 
+//#include<boost/tokenizer.hpp>
+
+
 #include "pcMesher.h"
-#include "camera.h"
 
 PcMesher::PcMesher(){
 
@@ -109,7 +110,7 @@ void PcMesher::planeSegmentation(){
         extract.filter (*cloud_p);
         std::cerr << "PointCloud representing the planar component: " << cloud_p->width * cloud_p->height << " data points." << i << std::endl;
 
-        stringstream ss;
+        std::stringstream ss;
         ss << "test_" << i << ".ply";
         io::savePLYFile(ss.str(), *cloud_p);
 
@@ -139,7 +140,7 @@ void PcMesher::surfaceReconstruction(const unsigned int _index){
     PolygonMesh mesh;
     poisson.reconstruct(mesh);
 
-    stringstream ss;
+    std::stringstream ss;
     ss << "triangles_" << _index << ".ply";
     io::savePLYFile(ss.str(), mesh);
 
@@ -147,14 +148,14 @@ void PcMesher::surfaceReconstruction(const unsigned int _index){
 
 
 
-void PcMesher::readMesh(string _fileName){
+void PcMesher::readMesh(std::string _fileName){
 
     // This cloud is a temporal one which will be stored in the cloud vector
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud (new PointCloud<PointXYZRGBNormalCam>);
 
     // Cloud file is loaded
     if (io::loadPLYFile<PointXYZRGBNormalCam>(_fileName, *cloud) == -1){
-        string message("Couldn't read file ");
+        std::string message("Couldn't read file ");
         message.append(_fileName);
         message.append(" \n");
         PCL_ERROR(message.c_str());
@@ -166,7 +167,7 @@ void PcMesher::readMesh(string _fileName){
 
 }
 
-void PcMesher::writeOneMesh(const unsigned int _index, string _fileName){
+void PcMesher::writeOneMesh(const unsigned int _index, std::string _fileName){
 
     PointCloud<PointXYZRGBNormalCam> outPointCloud = *pointClouds_[_index];
 
@@ -176,7 +177,7 @@ void PcMesher::writeOneMesh(const unsigned int _index, string _fileName){
 
 
 // All the point clouds in the vector are concatenated and printed into one file
-void PcMesher::writeMesh(string _fileName){
+void PcMesher::writeMesh(std::string _fileName){
 
     PointCloud<PointXYZRGBNormalCam> outPointCloud;
 
@@ -188,28 +189,134 @@ void PcMesher::writeMesh(string _fileName){
 }
 
 
+void PcMesher::bundlerReader(std::string _filename){
+
+    std::ifstream inputFile(_filename);
+    std::string line;
+
+    int nPoints = 0;
+    PointCloud<PointXYZRGBNormalCam>::Ptr cloud (new PointCloud<PointXYZRGBNormalCam>);
+
+    if (inputFile.is_open()){
+
+        // We avoid all possible commentaries in the firsts lines
+        do {
+            std::getline(inputFile, line);
+        } while (line.at(0) == '#');
+
+        // First, number of cameras and number of points in the input point cloud
+        boost::tokenizer<> tokens(line);
+        boost::tokenizer<>::iterator tit = tokens.begin();
+        std::stringstream ss;
+        ss << *tit;
+        ss >> nCameras_;
+        ++tit;
+        // stringstream is cleared. It could also be ss.str("")
+        ss.str(std::string());
+        ss.clear();
+
+        ss << *tit;
+        ss >> nPoints;
+
+        ss.str(std::string());
+        ss.clear();
+
+        // Now we read the camera information
+        for (unsigned int i = 0; i < nCameras_; i++){
+            Camera camera;
+            Eigen::Matrix3f R;
+            for (unsigned int cam_line = 0; cam_line < 5; cam_line++){
+                std::getline(inputFile, line);
+
+                boost::tokenizer<boost::char_separator<char> > cam_tokens(line, boost::char_separator<char>(" "));
+                boost::tokenizer<boost::char_separator<char> >::iterator ctit = cam_tokens.begin();
+
+                // First line has focal lenght and distortion coefficients
+                if (cam_line == 0){
+                    float f, k1, k2;
+                    ss << *ctit;
+                    ss >> f;
+                    ++ctit;
+                    ss.str(std::string());
+                    ss.clear();
+                    ss << *ctit;
+                    ss >> k1;
+                    ++ctit;
+                    ss.str(std::string());
+                    ss.clear();
+                    ss << *ctit;
+                    ss >> k2;
+                    ss.str(std::string());
+                    ss.clear();
+                    camera.setFocalLenght(f);
+                    camera.setDistortionCoefficients(k1,k2);
+                }
+                // Last line has the translation vector
+                else if (cam_line == 4){
+                    Eigen::Vector3f t;
+                    unsigned int index = 0;
+                    for (; ctit != cam_tokens.end(); ++ctit, index++){
+                        float value;
+                        ss << *ctit;
+                        ss >> value;
+                        ss.str(std::string());
+                        ss.clear();
+                        t(index) = value;
+                    }
+                    camera.setTranslationVector(t);
+                }
+                // The other lines have the rotation matrix
+                else {
+                    unsigned int index = 0;
+                    for (; ctit != cam_tokens.end(); ++ctit, index++){
+                        float value;
+                        ss << *ctit;
+                        ss >> value;
+                        ss.str(std::string());
+                        ss.clear();
+                        R(cam_line-1, index) = value;
+                    }
+                }
+
+            }
+            std::cerr << R << std::endl;
+            camera.setRotationMatrix(R);
+            cameras_.push_back(camera);
+        }
+
+    } else {
+        std::cerr << "Unable to open Bundle file" << std::endl;
+    }
+
+
+
+}
+
+
 
 int main (int argc, char *argv[]){
 
     PcMesher cloud;
 
-    cloud.readMesh(argv[1]);
-    cloud.writeMesh("input.ply");
+    cloud.bundlerReader(argv[1]);
 
-    cloud.planeSegmentation();
-    cloud.estimateAllNormals();
-//    cloud.surfaceReconstruction(0);
+//    cloud.readMesh(argv[1]);
+//    cloud.writeMesh("input.ply");
 
-    for (unsigned int i = 0; i < cloud.getNClouds(); i++){
+//    cloud.planeSegmentation();
+//    cloud.estimateAllNormals();
+////    cloud.surfaceReconstruction(0);
 
-        stringstream ss;
-        ss << "out_" << i << ".ply";
-        cloud.writeOneMesh(i, ss.str());
+//    for (unsigned int i = 0; i < cloud.getNClouds(); i++){
 
-//        cloud.surfaceReconstruction(i);
-    }
+//        std::stringstream ss;
+//        ss << "out_" << i << ".ply";
+//        cloud.writeOneMesh(i, ss.str());
 
-    cloud.writeMesh("output.ply");
+////        cloud.surfaceReconstruction(i);
+//    }
+
+//    cloud.writeMesh("output.ply");
 
 
     return 0;

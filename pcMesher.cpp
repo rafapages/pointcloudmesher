@@ -16,9 +16,6 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/extract_indices.h>
 
-//#include<boost/tokenizer.hpp>
-
-
 #include "pcMesher.h"
 
 PcMesher::PcMesher(){
@@ -188,6 +185,98 @@ void PcMesher::writeMesh(std::string _fileName){
     io::savePLYFile(_fileName, outPointCloud);
 }
 
+void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_stream){
+
+    std::stringstream ss;
+    std::string line;
+
+    for (unsigned int point_line = 0; point_line < 3; point_line++){
+
+        std::getline(_stream, line);
+
+        boost::tokenizer<boost::char_separator<char> > point_tokens(line, boost::char_separator<char>(" "));
+        boost::tokenizer<boost::char_separator<char> >::iterator ptit = point_tokens.begin();
+
+        // This line has the position of the point
+        if (point_line == 0){
+            unsigned int index = 0;
+            float xyz[3];
+            for (; ptit  != point_tokens.end(); ++ptit, index++){
+                float value;
+                ss << *ptit;
+                ss >> value;
+                ss.str(std::string());
+                ss.clear();
+                xyz[index] = value;
+            }
+            _point.x = xyz[0];
+            _point.y = xyz[1];
+            _point.z = xyz[2];
+        }
+        // This line has the color of the point
+        else if (point_line == 1){
+            unsigned int index = 0;
+            unsigned char rgb[3];
+            for (; ptit != point_tokens.end(); ++ptit, index++){
+                float value;
+                ss << *ptit;
+                ss >> value;
+                ss.str(std::string());
+                ss.clear();
+                rgb[index] = value;
+            }
+            _point.r = rgb[0];
+            _point.g = rgb[1];
+            _point.b = rgb[2];
+        }
+
+        // This line sets the camera correspondances with each point in the cloud
+        else {
+            int nCam;
+            ss << *ptit;
+            ss >> nCam;
+            ss.str(std::string());
+            ss.clear();
+            ++ptit;
+
+            if (nCam >= 4){
+                unsigned int index = 0;
+                unsigned int counter = 0;
+                for (; ptit != point_tokens.end(); ++ptit, counter++){
+                    if ( (counter % 4) == 0){
+                        unsigned int cam_value;
+                        ss << *ptit;
+                        ss >> cam_value;
+                        ss.str(std::string());
+                        ss.clear();
+                        _point.cameras[index] = cam_value;
+                        index++;
+                    }
+                }
+
+            } else {
+                for (unsigned int j = 0; j < 4; j++){
+                    _point.cameras[j] = 0;
+                }
+                unsigned int index = 0;
+                unsigned int counter = 0;
+                for (; ptit != point_tokens.end(); ++ptit, counter++){
+                    if ((counter % 4) == 0){
+                        unsigned int cam_value;
+                        ss << *ptit;
+                        ss >> cam_value;
+                        ss.str(std::string());
+                        ss.clear();
+                        _point.cameras[index] = cam_value;
+                        index++;
+                    }
+                }
+            }
+        }
+    }
+
+}
+
 
 void PcMesher::bundlerReader(std::string _filename){
 
@@ -211,6 +300,7 @@ void PcMesher::bundlerReader(std::string _filename){
         ss << *tit;
         ss >> nCameras_;
         ++tit;
+
         // stringstream is cleared. It could also be ss.str("")
         ss.str(std::string());
         ss.clear();
@@ -224,71 +314,29 @@ void PcMesher::bundlerReader(std::string _filename){
         // Now we read the camera information
         for (unsigned int i = 0; i < nCameras_; i++){
             Camera camera;
-            Eigen::Matrix3f R;
-            for (unsigned int cam_line = 0; cam_line < 5; cam_line++){
-                std::getline(inputFile, line);
+            camera.readCamera(inputFile);
 
-                boost::tokenizer<boost::char_separator<char> > cam_tokens(line, boost::char_separator<char>(" "));
-                boost::tokenizer<boost::char_separator<char> >::iterator ctit = cam_tokens.begin();
-
-                // First line has focal lenght and distortion coefficients
-                if (cam_line == 0){
-                    float f, k1, k2;
-                    ss << *ctit;
-                    ss >> f;
-                    ++ctit;
-                    ss.str(std::string());
-                    ss.clear();
-                    ss << *ctit;
-                    ss >> k1;
-                    ++ctit;
-                    ss.str(std::string());
-                    ss.clear();
-                    ss << *ctit;
-                    ss >> k2;
-                    ss.str(std::string());
-                    ss.clear();
-                    camera.setFocalLenght(f);
-                    camera.setDistortionCoefficients(k1,k2);
-                }
-                // Last line has the translation vector
-                else if (cam_line == 4){
-                    Eigen::Vector3f t;
-                    unsigned int index = 0;
-                    for (; ctit != cam_tokens.end(); ++ctit, index++){
-                        float value;
-                        ss << *ctit;
-                        ss >> value;
-                        ss.str(std::string());
-                        ss.clear();
-                        t(index) = value;
-                    }
-                    camera.setTranslationVector(t);
-                }
-                // The other lines have the rotation matrix
-                else {
-                    unsigned int index = 0;
-                    for (; ctit != cam_tokens.end(); ++ctit, index++){
-                        float value;
-                        ss << *ctit;
-                        ss >> value;
-                        ss.str(std::string());
-                        ss.clear();
-                        R(cam_line-1, index) = value;
-                    }
-                }
-
-            }
-            std::cerr << R << std::endl;
-            camera.setRotationMatrix(R);
             cameras_.push_back(camera);
         }
+
+        // Now we read geometry information
+        for (unsigned int i = 0; i < nPoints; i++){
+
+            PointXYZRGBNormalCam point;
+            bundlerPointReader(point, inputFile);
+
+            std::cerr << point.x << " " << point.y << " " << point.z << std::endl;
+//            std::cerr << point.cameras[0] << " " << point.cameras[1] << " " << point.cameras[2] << " " << point.cameras[3] << std::endl;
+
+            (*cloud).push_back(point);
+        }
+
+        pointClouds_.push_back(cloud);
+        inputFile.close();
 
     } else {
         std::cerr << "Unable to open Bundle file" << std::endl;
     }
-
-
 
 }
 
@@ -300,23 +348,24 @@ int main (int argc, char *argv[]){
 
     cloud.bundlerReader(argv[1]);
 
-//    cloud.readMesh(argv[1]);
-//    cloud.writeMesh("input.ply");
+    std::cerr << "LOG TEST" << std::endl;
+    //    cloud.readMesh(argv[1]);
+    cloud.writeMesh("input.ply");
 
-//    cloud.planeSegmentation();
-//    cloud.estimateAllNormals();
-////    cloud.surfaceReconstruction(0);
+    //    cloud.planeSegmentation();
+    //    cloud.estimateAllNormals();
+    ////    cloud.surfaceReconstruction(0);
 
-//    for (unsigned int i = 0; i < cloud.getNClouds(); i++){
+    //    for (unsigned int i = 0; i < cloud.getNClouds(); i++){
 
-//        std::stringstream ss;
-//        ss << "out_" << i << ".ply";
-//        cloud.writeOneMesh(i, ss.str());
+    //        std::stringstream ss;
+    //        ss << "out_" << i << ".ply";
+    //        cloud.writeOneMesh(i, ss.str());
 
-////        cloud.surfaceReconstruction(i);
-//    }
+    ////        cloud.surfaceReconstruction(i);
+    //    }
 
-//    cloud.writeMesh("output.ply");
+    //    cloud.writeMesh("output.ply");
 
 
     return 0;

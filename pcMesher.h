@@ -31,12 +31,14 @@ public:
     void surfaceReconstruction(const unsigned int _index);
     void allSurfaceReconstruction();
 
+    void bundlerPointReader(PointXYZRGBNormalCam& _point, std::ifstream& _stream);
 
     // I/O functions
     void readMesh(std::string _fileName);
     void writeOneMesh(const unsigned int _index, std::string _fileName);
     void writeMesh(std::string _fileName);
     void bundlerReader(std::string _filename);
+
 
 private:
 

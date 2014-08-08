@@ -2,6 +2,7 @@
 #define CAMERA_H
 
 #include <Eigen/Dense>
+#include <stdio.h>
 
 class Camera{
 
@@ -19,6 +20,8 @@ public:
     void setTranslationVector(const Eigen::Vector3f _t);
 
     Eigen::Vector3f getCameraPosition();
+
+    void readCamera(std::ifstream& _stream);
 
 
 private:

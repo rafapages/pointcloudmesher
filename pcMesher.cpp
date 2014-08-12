@@ -47,7 +47,9 @@ void PcMesher::estimateNormals(const unsigned int _index){
     ne.setSearchMethod (tree);
 
     // Use all neighbors in a sphere of radius 3cm
-    ne.setRadiusSearch (1.03); // <--------------------- IT'S IMPORTANT TO DETERMINE THIS NUMBER PROPERLY
+//    ne.setRadiusSearch (1.03); // <--------------------- IT'S IMPORTANT TO DETERMINE THIS NUMBER PROPERLY
+    ne.setRadiusSearch (0.3); // <--------------------- IT'S IMPORTANT TO DETERMINE THIS NUMBER PROPERLY
+
 
     // Compute the features
     ne.compute (*cloud);
@@ -60,6 +62,35 @@ void PcMesher::estimateAllNormals(){
     for (unsigned int i = 0; i < pointClouds_.size(); i++){
 
         estimateNormals(i);
+
+    }
+}
+
+void PcMesher::fixNormal(const unsigned int _index){
+
+    PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[_index];
+
+    for (unsigned int i = 0; i < cloud->points.size(); i++){
+        PointXYZRGBNormalCam current = cloud->points[i];
+        Eigen::Vector3f cur_pos = current.getArray3fMap();
+        Eigen::Vector3f cam_pos = cameras_[current.camera].getCameraPosition();
+
+        Eigen::Vector3f cam_dir = cam_pos - cur_pos;
+        Eigen::Vector3f normal  = current.getNormalVector3fMap();
+
+        if (cam_dir.dot(normal) < 0){
+            cloud->points[i].normal_x = -current.normal_x;
+            cloud->points[i].normal_y = -current.normal_y;
+            cloud->points[i].normal_z = -current.normal_z;
+        }
+    }
+}
+
+void PcMesher::fixAllNormals(){
+
+    for (unsigned int i = 0; i < pointClouds_.size(); i++){
+
+        fixNormal(i);
 
     }
 }
@@ -81,7 +112,8 @@ void PcMesher::planeSegmentation(){
     seg.setModelType (SACMODEL_PLANE);
     seg.setMethodType (SAC_RANSAC);
     seg.setMaxIterations (1000);
-    seg.setDistanceThreshold (0.01);
+//    seg.setDistanceThreshold (0.01);
+    seg.setDistanceThreshold(0.03);
 
 
     // Create the filtering object
@@ -390,14 +422,13 @@ int main (int argc, char *argv[]){
     PcMesher cloud;
 
     cloud.bundlerReader(argv[1]);
-    cloud.drawCameras();
 
-    //    cloud.readMesh(argv[1]);
-    cloud.writeMesh("input.ply");
+//    cloud.readMesh(argv[1]);
+//    cloud.writeMesh("input.ply");
 
-    //    cloud.planeSegmentation();
-    //    cloud.estimateAllNormals();
-    ////    cloud.surfaceReconstruction(0);
+    cloud.estimateAllNormals();
+    cloud.fixAllNormals();
+    cloud.planeSegmentation();
 
     //    for (unsigned int i = 0; i < cloud.getNClouds(); i++){
 
@@ -408,8 +439,9 @@ int main (int argc, char *argv[]){
     ////        cloud.surfaceReconstruction(i);
     //    }
 
-    //    cloud.writeMesh("output.ply");
+    cloud.drawCameras();
 
+    cloud.writeMesh("output.ply");
 
     return 0;
 }

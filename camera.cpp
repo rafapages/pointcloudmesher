@@ -5,7 +5,6 @@
 #include <boost/tokenizer.hpp>
 
 #include "camera.h"
-#include "pointXYZRGBNormalCam.h"
 
 Camera::Camera(){
 
@@ -46,6 +45,13 @@ void Camera::setTranslationVector(const Eigen::Vector3f _t){
 
 Eigen::Vector3f Camera::getCameraPosition(){ // -R'·t
     return -R_.transpose() * t_;
+}
+
+void Camera::getCameraPosition(PointXYZRGBNormalCam& _point){
+    Eigen::Vector3f pos = this->getCameraPosition();
+    _point.x = pos(0);
+    _point.y = pos(1);
+    _point.z = pos(2);
 }
 
 // NOTE: IT'S NECESSARY TO ADD COMMENT PROTECTION TO THIS METHOD (#)

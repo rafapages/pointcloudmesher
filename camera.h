@@ -4,6 +4,9 @@
 #include <Eigen/Dense>
 #include <stdio.h>
 
+#include "pointXYZRGBNormalCam.h"
+
+
 class Camera{
 
 public:
@@ -20,6 +23,7 @@ public:
     void setTranslationVector(const Eigen::Vector3f _t);
 
     Eigen::Vector3f getCameraPosition();
+    void getCameraPosition(PointXYZRGBNormalCam& _point);
 
     void readCamera(std::ifstream& _stream);
 

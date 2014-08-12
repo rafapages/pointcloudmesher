@@ -21,6 +21,10 @@ public:
     void estimateNormals(const unsigned int _index);
     void estimateAllNormals();
 
+    // Fix the normal orientation using the camera position
+    void fixNormal(const unsigned int _index);
+    void fixAllNormals();
+
     // Plane segmentation
     void planeSegmentation();
 

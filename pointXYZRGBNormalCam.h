@@ -18,7 +18,7 @@ struct PointXYZRGBNormalCam{
       float data_c[4];
     };
 
-    int cameras[4];
+    int camera;
 
     PCL_ADD_EIGEN_MAPS_RGB
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -34,7 +34,7 @@ POINT_CLOUD_REGISTER_POINT_STRUCT (PointXYZRGBNormalCam,
                                    (float, normal_y, normal_y)
                                    (float, normal_z, normal_z)
                                    (float, curvature, curvature)
-                                   (int[4], cameras, cameras)
+                                   (int, camera, camera)
                                    )
 
 

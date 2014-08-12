@@ -232,49 +232,66 @@ void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_
 
         // This line sets the camera correspondances with each point in the cloud
         else {
-            int nCam;
+            unsigned int nCam;
             ss << *ptit;
             ss >> nCam;
             ss.str(std::string());
             ss.clear();
             ++ptit;
 
-            if (nCam >= 4){
-                unsigned int index = 0;
-                unsigned int counter = 0;
-                for (; ptit != point_tokens.end(); ++ptit, counter++){
-                    if ( (counter % 4) == 0){
-                        unsigned int cam_value;
-                        ss << *ptit;
-                        ss >> cam_value;
-                        ss.str(std::string());
-                        ss.clear();
-                        _point.cameras[index] = cam_value;
-                        index++;
-                    }
-                }
-
+            if (nCam > 0){
+                int cam_value;
+                ss << *ptit;
+                ss >> cam_value;
+                ss.str(std::string());
+                ss.clear();
+                _point.camera = cam_value;
             } else {
-                for (unsigned int j = 0; j < 4; j++){
-                    _point.cameras[j] = 0;
-                }
-                unsigned int index = 0;
-                unsigned int counter = 0;
-                for (; ptit != point_tokens.end(); ++ptit, counter++){
-                    if ((counter % 4) == 0){
-                        unsigned int cam_value;
-                        ss << *ptit;
-                        ss >> cam_value;
-                        ss.str(std::string());
-                        ss.clear();
-                        _point.cameras[index] = cam_value;
-                        index++;
-                    }
-                }
+                _point.camera = -1;
             }
+
+//            if (nCam >= 4){
+//                for (unsigned int j = 0; j < 4; j++){
+//                    _point.cameras[j] = 0;
+//                }
+//                unsigned int index = 0;
+//                unsigned int counter = 0;
+//                for (; (ptit != point_tokens.end()); ++ptit, counter++){
+//                    if ( (counter % 4) == 0){
+//                        int cam_value;
+//                        ss << *ptit;
+//                        ss >> cam_value;
+//                        ss.str(std::string());
+//                        ss.clear();
+//                        _point.cameras[index] = cam_value;
+////                        std::cerr << index << std::endl;
+////                        std::cerr << "value:" << cam_value << std::endl;
+//                        index++;
+//                    }
+//                }
+
+//            } else {
+//                for (unsigned int j = 0; j < 4; j++){
+//                    _point.cameras[j] = 0;
+//                }
+//                unsigned int index = 0;
+//                unsigned int counter = 0;
+//                for (; (ptit != point_tokens.end()); ++ptit, counter++){
+//                    if ((counter % 4) == 0){
+//                        int cam_value;
+//                        ss << *ptit;
+//                        ss >> cam_value;
+//                        ss.str(std::string());
+//                        ss.clear();
+//                        _point.cameras[index] = cam_value;
+////                        std::cerr << index << std::endl;
+////                        std::cerr << "value:" << cam_value << std::endl;
+//                        index++;
+//                    }
+//                }
+//            }
         }
     }
-
 }
 
 
@@ -327,11 +344,14 @@ void PcMesher::bundlerReader(std::string _filename){
 
             std::cerr << point.x << " " << point.y << " " << point.z << std::endl;
 //            std::cerr << point.cameras[0] << " " << point.cameras[1] << " " << point.cameras[2] << " " << point.cameras[3] << std::endl;
+            std::cerr << "Camera: " << point.camera << std::endl;
 
-            (*cloud).push_back(point);
+            cloud->push_back(point);
+
         }
 
         pointClouds_.push_back(cloud);
+
         inputFile.close();
 
     } else {
@@ -348,7 +368,6 @@ int main (int argc, char *argv[]){
 
     cloud.bundlerReader(argv[1]);
 
-    std::cerr << "LOG TEST" << std::endl;
     //    cloud.readMesh(argv[1]);
     cloud.writeMesh("input.ply");
 

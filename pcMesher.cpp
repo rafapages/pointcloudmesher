@@ -143,6 +143,29 @@ void PcMesher::surfaceReconstruction(const unsigned int _index){
 
 }
 
+void PcMesher::drawCameras(){
+
+    PointCloud<PointXYZRGBNormalCam>::Ptr camera_cloud (new PointCloud<PointXYZRGBNormalCam>);
+
+    for (unsigned int i = 0; i < cameras_.size(); i++){
+        PointXYZRGBNormalCam pos;
+        Camera currentCam = cameras_[i];
+        Eigen::Vector3f eigpos = currentCam.getCameraPosition();
+        pos.x = eigpos(0);
+        pos.y = eigpos(1);
+        pos.z = eigpos(2);
+        // They are painted green, for example
+        pos.r = 0;
+        pos.g = 255;
+        pos.b = 0;
+        camera_cloud->push_back(pos);
+    }
+
+    pointClouds_.push_back(camera_cloud);
+    nClouds_++;
+
+}
+
 
 
 void PcMesher::readMesh(std::string _fileName){
@@ -342,9 +365,9 @@ void PcMesher::bundlerReader(std::string _filename){
             PointXYZRGBNormalCam point;
             bundlerPointReader(point, inputFile);
 
-            std::cerr << point.x << " " << point.y << " " << point.z << std::endl;
-//            std::cerr << point.cameras[0] << " " << point.cameras[1] << " " << point.cameras[2] << " " << point.cameras[3] << std::endl;
-            std::cerr << "Camera: " << point.camera << std::endl;
+//            std::cerr << point.x << " " << point.y << " " << point.z << std::endl;
+////            std::cerr << point.cameras[0] << " " << point.cameras[1] << " " << point.cameras[2] << " " << point.cameras[3] << std::endl;
+//            std::cerr << "Camera: " << point.camera << std::endl;
 
             cloud->push_back(point);
 
@@ -367,6 +390,7 @@ int main (int argc, char *argv[]){
     PcMesher cloud;
 
     cloud.bundlerReader(argv[1]);
+    cloud.drawCameras();
 
     //    cloud.readMesh(argv[1]);
     cloud.writeMesh("input.ply");

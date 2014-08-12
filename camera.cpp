@@ -44,8 +44,8 @@ void Camera::setTranslationVector(const Eigen::Vector3f _t){
     t_ = _t;
 }
 
-Eigen::Vector3f Camera::getCameraPosition(){
-    return R_* t_;
+Eigen::Vector3f Camera::getCameraPosition(){ // -R'·t
+    return -R_.transpose() * t_;
 }
 
 // NOTE: IT'S NECESSARY TO ADD COMMENT PROTECTION TO THIS METHOD (#)

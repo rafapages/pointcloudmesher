@@ -31,6 +31,9 @@ public:
     void surfaceReconstruction(const unsigned int _index);
     void allSurfaceReconstruction();
 
+    // Adding every camera to the cloud to see if it works
+    void drawCameras();
+
     void bundlerPointReader(PointXYZRGBNormalCam& _point, std::ifstream& _stream);
 
     // I/O functions

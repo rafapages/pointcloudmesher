@@ -139,9 +139,9 @@ void PcMesher::planeSegmentation(){
         extract.filter (*cloud_p);
         std::cerr << "PointCloud representing the planar component: " << cloud_p->width * cloud_p->height << " data points." << i << std::endl;
 
-        std::stringstream ss;
-        ss << "test_" << i << ".ply";
-        io::savePLYFile(ss.str(), *cloud_p);
+//        std::stringstream ss;
+//        ss << "test_" << i << ".ply";
+//        io::savePLYFile(ss.str(), *cloud_p);
 
         // We create a pointer to a copy of the plane cloud to be able to store properly
         PointCloud<PointXYZRGBNormalCam>::Ptr plane_cloud = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(*cloud_p);
@@ -227,9 +227,7 @@ void PcMesher::writeOneMesh(const unsigned int _index, std::string _fileName){
 
 }
 
-
-// All the point clouds in the vector are concatenated and printed into one file
-void PcMesher::writeMesh(std::string _fileName){
+PointCloud<PointXYZRGBNormalCam> PcMesher::combinePointClouds(){
 
     PointCloud<PointXYZRGBNormalCam> outPointCloud;
 
@@ -237,7 +235,23 @@ void PcMesher::writeMesh(std::string _fileName){
         outPointCloud += *pointClouds_[i];
     }
 
-    io::savePLYFile(_fileName, outPointCloud);
+    return outPointCloud;
+
+}
+
+
+// All the point clouds in the vector are concatenated and printed into one file
+void PcMesher::writeMesh(std::string _fileName){
+
+//    PointCloud<PointXYZRGBNormalCam> outPointCloud;
+
+//    for (unsigned int i = 0; i < pointClouds_.size(); i++){
+//        outPointCloud += *pointClouds_[i];
+//    }
+
+//    io::savePLYFile(_fileName, outPointCloud);
+    io::savePLYFile(_fileName, combinePointClouds());
+
 }
 
 void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_stream){
@@ -304,47 +318,6 @@ void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_
             } else {
                 _point.camera = -1;
             }
-
-//            if (nCam >= 4){
-//                for (unsigned int j = 0; j < 4; j++){
-//                    _point.cameras[j] = 0;
-//                }
-//                unsigned int index = 0;
-//                unsigned int counter = 0;
-//                for (; (ptit != point_tokens.end()); ++ptit, counter++){
-//                    if ( (counter % 4) == 0){
-//                        int cam_value;
-//                        ss << *ptit;
-//                        ss >> cam_value;
-//                        ss.str(std::string());
-//                        ss.clear();
-//                        _point.cameras[index] = cam_value;
-////                        std::cerr << index << std::endl;
-////                        std::cerr << "value:" << cam_value << std::endl;
-//                        index++;
-//                    }
-//                }
-
-//            } else {
-//                for (unsigned int j = 0; j < 4; j++){
-//                    _point.cameras[j] = 0;
-//                }
-//                unsigned int index = 0;
-//                unsigned int counter = 0;
-//                for (; (ptit != point_tokens.end()); ++ptit, counter++){
-//                    if ((counter % 4) == 0){
-//                        int cam_value;
-//                        ss << *ptit;
-//                        ss >> cam_value;
-//                        ss.str(std::string());
-//                        ss.clear();
-//                        _point.cameras[index] = cam_value;
-////                        std::cerr << index << std::endl;
-////                        std::cerr << "value:" << cam_value << std::endl;
-//                        index++;
-//                    }
-//                }
-//            }
         }
     }
 }
@@ -424,22 +397,22 @@ int main (int argc, char *argv[]){
     cloud.bundlerReader(argv[1]);
 
 //    cloud.readMesh(argv[1]);
-//    cloud.writeMesh("input.ply");
+    cloud.writeMesh("input.ply");
 
+    cloud.planeSegmentation();
     cloud.estimateAllNormals();
     cloud.fixAllNormals();
-    cloud.planeSegmentation();
 
-    //    for (unsigned int i = 0; i < cloud.getNClouds(); i++){
+    for (unsigned int i = 0; i < cloud.getNClouds(); i++){
 
-    //        std::stringstream ss;
-    //        ss << "out_" << i << ".ply";
-    //        cloud.writeOneMesh(i, ss.str());
+        std::stringstream ss;
+        ss << "out_" << i << ".ply";
+        cloud.writeOneMesh(i, ss.str());
 
-    ////        cloud.surfaceReconstruction(i);
-    //    }
+        //        cloud.surfaceReconstruction(i);
+    }
 
-    cloud.drawCameras();
+//    cloud.drawCameras();
 
     cloud.writeMesh("output.ply");
 

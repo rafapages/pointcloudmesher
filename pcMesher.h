@@ -38,9 +38,11 @@ public:
     // Adding every camera to the cloud to see if it works
     void drawCameras();
 
-    void bundlerPointReader(PointXYZRGBNormalCam& _point, std::ifstream& _stream);
+    // Combine point clouds
+    PointCloud<PointXYZRGBNormalCam> combinePointClouds();
 
     // I/O functions
+    void bundlerPointReader(PointXYZRGBNormalCam& _point, std::ifstream& _stream);
     void readMesh(std::string _fileName);
     void writeOneMesh(const unsigned int _index, std::string _fileName);
     void writeMesh(std::string _fileName);

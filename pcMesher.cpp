@@ -175,6 +175,20 @@ void PcMesher::surfaceReconstruction(const unsigned int _index){
 
 }
 
+void PcMesher::surfaceReconstruction(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud){
+
+    Poisson<PointXYZRGBNormalCam> poisson;
+    poisson.setDepth(9);
+    poisson.setInputCloud(_cloud);
+    PolygonMesh mesh;
+    poisson.reconstruct(mesh);
+
+    std::stringstream ss;
+    ss << "triangles.ply";
+    io::savePLYFile(ss.str(), mesh);
+
+}
+
 void PcMesher::drawCameras(){
 
     PointCloud<PointXYZRGBNormalCam>::Ptr camera_cloud (new PointCloud<PointXYZRGBNormalCam>);
@@ -243,13 +257,6 @@ PointCloud<PointXYZRGBNormalCam> PcMesher::combinePointClouds(){
 // All the point clouds in the vector are concatenated and printed into one file
 void PcMesher::writeMesh(std::string _fileName){
 
-//    PointCloud<PointXYZRGBNormalCam> outPointCloud;
-
-//    for (unsigned int i = 0; i < pointClouds_.size(); i++){
-//        outPointCloud += *pointClouds_[i];
-//    }
-
-//    io::savePLYFile(_fileName, outPointCloud);
     io::savePLYFile(_fileName, combinePointClouds());
 
 }
@@ -411,6 +418,12 @@ int main (int argc, char *argv[]){
 
         //        cloud.surfaceReconstruction(i);
     }
+
+    PointCloud<PointXYZRGBNormalCam> combinedCloud = cloud.combinePointClouds();
+    PointCloud<PointXYZRGBNormalCam>::Ptr combinedCloudPtr = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(combinedCloud);
+
+    cloud.surfaceReconstruction(combinedCloudPtr);
+
 
 //    cloud.drawCameras();
 

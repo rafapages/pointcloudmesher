@@ -33,6 +33,7 @@ public:
 
     // Surface reconstruction
     void surfaceReconstruction(const unsigned int _index);
+    void surfaceReconstruction(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud);
     void allSurfaceReconstruction();
 
     // Adding every camera to the cloud to see if it works

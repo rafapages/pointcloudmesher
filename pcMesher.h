@@ -4,8 +4,12 @@
 #include <iostream>
 #include <stdio.h>
 
+#include <pcl/surface/poisson.h>
+
+
 #include "pointXYZRGBNormalCam.h"
 #include "camera.h"
+
 
 class PcMesher{
 
@@ -29,12 +33,15 @@ public:
     void planeSegmentation();
 
     // Cilinder segmentation
-    void cilinderSegmentation();
+    void cylinderSegmentation();
 
     // Surface reconstruction
     void surfaceReconstruction(const unsigned int _index);
     void surfaceReconstruction(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud);
     void allSurfaceReconstruction();
+
+    // Mesh refining
+    void deleteWrongVertices();
 
     // Adding every camera to the cloud to see if it works
     void drawCameras();
@@ -57,6 +64,9 @@ private:
 
     std::vector<Camera> cameras_;
     unsigned int nCameras_;
+
+    PolygonMesh mesh_;
+
 
 };
 

@@ -7,7 +7,6 @@
 
 #include <pcl/kdtree/kdtree_flann.h>
 
-#include <pcl/surface/poisson.h>
 
 #include <pcl/ModelCoefficients.h>
 #include <pcl/sample_consensus/method_types.h>
@@ -34,6 +33,8 @@ unsigned int PcMesher::getNClouds(){
 }
 
 void PcMesher::estimateNormals(const unsigned int _index){
+
+    std::cerr << "Estimating normals of pointcloud " << _index + 1 << "/" << nClouds_ << std::endl;
 
     // Create the normal estimation class, and pass the input dataset to it
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[_index];
@@ -97,6 +98,8 @@ void PcMesher::fixAllNormals(){
 
 void PcMesher::planeSegmentation(){
 
+    std::cerr << "Segmenting planes..." << std::endl;
+
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[0];
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud_p (new PointCloud<PointXYZRGBNormalCam>);
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud_f (new PointCloud<PointXYZRGBNormalCam>);
@@ -113,7 +116,7 @@ void PcMesher::planeSegmentation(){
     seg.setMethodType (SAC_RANSAC);
     seg.setMaxIterations (1000);
 //    seg.setDistanceThreshold (0.01);
-    seg.setDistanceThreshold(0.03);
+    seg.setDistanceThreshold(0.05);
 
 
     // Create the filtering object
@@ -139,10 +142,6 @@ void PcMesher::planeSegmentation(){
         extract.filter (*cloud_p);
         std::cerr << "PointCloud representing the planar component: " << cloud_p->width * cloud_p->height << " data points." << i << std::endl;
 
-//        std::stringstream ss;
-//        ss << "test_" << i << ".ply";
-//        io::savePLYFile(ss.str(), *cloud_p);
-
         // We create a pointer to a copy of the plane cloud to be able to store properly
         PointCloud<PointXYZRGBNormalCam>::Ptr plane_cloud = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(*cloud_p);
 
@@ -155,6 +154,10 @@ void PcMesher::planeSegmentation(){
         cloud.swap (cloud_f);
         i++;
     }
+
+}
+
+void PcMesher::cylinderSegmentation(){
 
 }
 
@@ -234,6 +237,8 @@ void PcMesher::readMesh(std::string _fileName){
 }
 
 void PcMesher::writeOneMesh(const unsigned int _index, std::string _fileName){
+
+    std::cerr << "Exporting point cloud: " << _index << "/" << nClouds_ << std::endl;
 
     PointCloud<PointXYZRGBNormalCam> outPointCloud = *pointClouds_[_index];
 
@@ -332,6 +337,8 @@ void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_
 
 void PcMesher::bundlerReader(std::string _filename){
 
+    std::cerr << "Reading Bundler file" << std::endl;
+
     std::ifstream inputFile(_filename);
     std::string line;
 
@@ -377,15 +384,12 @@ void PcMesher::bundlerReader(std::string _filename){
             PointXYZRGBNormalCam point;
             bundlerPointReader(point, inputFile);
 
-//            std::cerr << point.x << " " << point.y << " " << point.z << std::endl;
-////            std::cerr << point.cameras[0] << " " << point.cameras[1] << " " << point.cameras[2] << " " << point.cameras[3] << std::endl;
-//            std::cerr << "Camera: " << point.camera << std::endl;
-
             cloud->push_back(point);
 
         }
 
         pointClouds_.push_back(cloud);
+        nClouds_++;
 
         inputFile.close();
 
@@ -402,13 +406,13 @@ int main (int argc, char *argv[]){
     PcMesher cloud;
 
     cloud.bundlerReader(argv[1]);
-
-//    cloud.readMesh(argv[1]);
     cloud.writeMesh("input.ply");
 
     cloud.planeSegmentation();
     cloud.estimateAllNormals();
     cloud.fixAllNormals();
+
+//    cloud.cylinderSegmentation();
 
     for (unsigned int i = 0; i < cloud.getNClouds(); i++){
 
@@ -416,14 +420,12 @@ int main (int argc, char *argv[]){
         ss << "out_" << i << ".ply";
         cloud.writeOneMesh(i, ss.str());
 
-        //        cloud.surfaceReconstruction(i);
     }
 
     PointCloud<PointXYZRGBNormalCam> combinedCloud = cloud.combinePointClouds();
     PointCloud<PointXYZRGBNormalCam>::Ptr combinedCloudPtr = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(combinedCloud);
 
     cloud.surfaceReconstruction(combinedCloudPtr);
-
 
 //    cloud.drawCameras();
 

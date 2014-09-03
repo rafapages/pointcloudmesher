@@ -7,6 +7,7 @@
 
 #include <pcl/kdtree/kdtree_flann.h>
 
+#include <pcl/conversions.h>
 
 #include <pcl/ModelCoefficients.h>
 #include <pcl/sample_consensus/method_types.h>
@@ -183,12 +184,67 @@ void PcMesher::surfaceReconstruction(PointCloud<PointXYZRGBNormalCam>::Ptr _clou
     Poisson<PointXYZRGBNormalCam> poisson;
     poisson.setDepth(9);
     poisson.setInputCloud(_cloud);
-    PolygonMesh mesh;
-    poisson.reconstruct(mesh);
+//    PolygonMesh mesh;
+    poisson.reconstruct(mesh_);
 
     std::stringstream ss;
     ss << "triangles.ply";
-    io::savePLYFile(ss.str(), mesh);
+    io::savePLYFile(ss.str(), mesh_);
+
+}
+
+PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh _inputMesh){
+
+    std::cerr << "Cleaning the Poisson mesh" << std::endl;
+
+    float MAXD = 0.1;
+
+    KdTreeFLANN<PointXYZRGBNormalCam> kdtree;
+    kdtree.setInputCloud(_cloud);
+
+    // Some data for the output mesh:
+    // vector for storing valid polygons
+    std::vector<Vertices> validFaces;
+    PointCloud<PointXYZRGBNormalCam> meshCloud;
+    fromPCLPointCloud2 (_inputMesh.cloud, meshCloud);
+
+    // foreach face
+    std::vector<Vertices, std::allocator<Vertices> >::iterator face_it; // por qué el allocator?
+    for (face_it = _inputMesh.polygons.begin(); face_it != _inputMesh.polygons.end(); ++face_it) {
+
+        bool isInside = true;
+
+        // for each vertex in the face
+        for (unsigned int i = 0; i < 3; i++){
+
+            PointXYZRGBNormalCam searchPoint = meshCloud.points[face_it->vertices[i]];
+
+            // Neighbors within radius search
+
+            std::vector<int> pointIdxRadiusSearch;
+            std::vector<float> pointRadiusSquaredDistance;
+
+            float radius = MAXD;
+
+            if ( kdtree.radiusSearch (searchPoint, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) <= 0 ){
+                isInside = false;
+                break;
+            }
+        }
+
+        if (isInside) validFaces.push_back(*face_it);
+    }
+
+
+    // Write output polygon mesh
+    PolygonMesh outputMesh;
+
+    outputMesh.cloud = _inputMesh.cloud;
+
+    outputMesh.polygons.clear();
+    outputMesh.polygons.insert(outputMesh.polygons.begin(), validFaces.begin(), validFaces.end());
+
+    return outputMesh;
 
 }
 
@@ -408,24 +464,28 @@ int main (int argc, char *argv[]){
     cloud.bundlerReader(argv[1]);
     cloud.writeMesh("input.ply");
 
-    cloud.planeSegmentation();
+//    cloud.planeSegmentation();
     cloud.estimateAllNormals();
     cloud.fixAllNormals();
 
 //    cloud.cylinderSegmentation();
 
-    for (unsigned int i = 0; i < cloud.getNClouds(); i++){
+//    for (unsigned int i = 0; i < cloud.getNClouds(); i++){
 
-        std::stringstream ss;
-        ss << "out_" << i << ".ply";
-        cloud.writeOneMesh(i, ss.str());
+//        std::stringstream ss;
+//        ss << "out_" << i << ".ply";
+//        cloud.writeOneMesh(i, ss.str());
 
-    }
+//    }
 
     PointCloud<PointXYZRGBNormalCam> combinedCloud = cloud.combinePointClouds();
     PointCloud<PointXYZRGBNormalCam>::Ptr combinedCloudPtr = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(combinedCloud);
 
     cloud.surfaceReconstruction(combinedCloudPtr);
+
+    PolygonMesh m = cloud.deleteWrongVertices(combinedCloudPtr, cloud.mesh_);
+
+    io::savePLYFile("limpio.ply", m);
 
 //    cloud.drawCameras();
 

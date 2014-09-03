@@ -41,7 +41,7 @@ public:
     void allSurfaceReconstruction();
 
     // Mesh refining
-    void deleteWrongVertices();
+    PolygonMesh deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh _inputMesh);
 
     // Adding every camera to the cloud to see if it works
     void drawCameras();
@@ -56,6 +56,8 @@ public:
     void writeMesh(std::string _fileName);
     void bundlerReader(std::string _filename);
 
+    PolygonMesh mesh_; // TO TEST!! THIS SHOULD BE MOVED TO PRIVATE
+
 
 private:
 
@@ -65,7 +67,6 @@ private:
     std::vector<Camera> cameras_;
     unsigned int nCameras_;
 
-    PolygonMesh mesh_;
 
 
 };

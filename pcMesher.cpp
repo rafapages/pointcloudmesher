@@ -8,6 +8,7 @@
 #include <pcl/kdtree/kdtree_flann.h>
 
 #include <pcl/conversions.h>
+#include <pcl/surface/simplification_remove_unused_vertices.h>
 
 #include <pcl/ModelCoefficients.h>
 #include <pcl/sample_consensus/method_types.h>
@@ -197,6 +198,7 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
 
     std::cerr << "Cleaning the Poisson mesh" << std::endl;
 
+    // This value needs to be automatized
     float MAXD = 0.1;
 
     KdTreeFLANN<PointXYZRGBNormalCam> kdtree;
@@ -205,6 +207,7 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
     // Some data for the output mesh:
     // vector for storing valid polygons
     std::vector<Vertices> validFaces;
+    // PointCloud instead of PCLPointCloud2
     PointCloud<PointXYZRGBNormalCam> meshCloud;
     fromPCLPointCloud2 (_inputMesh.cloud, meshCloud);
 
@@ -226,6 +229,8 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
 
             float radius = MAXD;
 
+            // if there is no vertex in the input point cloud close to this current vertex of the mesh
+            // the whole face is discarded
             if ( kdtree.radiusSearch (searchPoint, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) <= 0 ){
                 isInside = false;
                 break;
@@ -238,13 +243,18 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
 
     // Write output polygon mesh
     PolygonMesh outputMesh;
-
+    // Same point cloud as the input mesh
     outputMesh.cloud = _inputMesh.cloud;
-
+    // Only the valid faces
     outputMesh.polygons.clear();
     outputMesh.polygons.insert(outputMesh.polygons.begin(), validFaces.begin(), validFaces.end());
 
-    return outputMesh;
+    // Here we delete unused vertices
+    PolygonMesh outputMesh2;
+    surface::SimplificationRemoveUnusedVertices cleaner;
+    cleaner.simplify(outputMesh, outputMesh2);
+
+    return outputMesh2;
 
 }
 

@@ -180,17 +180,15 @@ void PcMesher::surfaceReconstruction(const unsigned int _index){
 
 }
 
-void PcMesher::surfaceReconstruction(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud){
+PolygonMesh PcMesher::surfaceReconstruction(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud){
 
     Poisson<PointXYZRGBNormalCam> poisson;
     poisson.setDepth(9);
     poisson.setInputCloud(_cloud);
-//    PolygonMesh mesh;
-    poisson.reconstruct(mesh_);
+    PolygonMesh mesh;
+    poisson.reconstruct(mesh);
 
-    std::stringstream ss;
-    ss << "triangles.ply";
-    io::savePLYFile(ss.str(), mesh_);
+    return mesh;
 
 }
 
@@ -250,11 +248,11 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
     outputMesh.polygons.insert(outputMesh.polygons.begin(), validFaces.begin(), validFaces.end());
 
     // Here we delete unused vertices
-    PolygonMesh outputMesh2;
+    PolygonMesh finalOutputMesh;
     surface::SimplificationRemoveUnusedVertices cleaner;
-    cleaner.simplify(outputMesh, outputMesh2);
+    cleaner.simplify(outputMesh, finalOutputMesh);
 
-    return outputMesh2;
+    return finalOutputMesh;
 
 }
 
@@ -491,9 +489,9 @@ int main (int argc, char *argv[]){
     PointCloud<PointXYZRGBNormalCam> combinedCloud = cloud.combinePointClouds();
     PointCloud<PointXYZRGBNormalCam>::Ptr combinedCloudPtr = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(combinedCloud);
 
-    cloud.surfaceReconstruction(combinedCloudPtr);
+    PolygonMesh first_mesh = cloud.surfaceReconstruction(combinedCloudPtr);
 
-    PolygonMesh m = cloud.deleteWrongVertices(combinedCloudPtr, cloud.mesh_);
+    PolygonMesh m = cloud.deleteWrongVertices(combinedCloudPtr, first_mesh);
 
     io::savePLYFile("limpio.ply", m);
 

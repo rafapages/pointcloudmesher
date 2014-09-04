@@ -37,7 +37,7 @@ public:
 
     // Surface reconstruction
     void surfaceReconstruction(const unsigned int _index);
-    void surfaceReconstruction(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud);
+    PolygonMesh surfaceReconstruction(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud);
     void allSurfaceReconstruction();
 
     // Mesh refining
@@ -56,7 +56,7 @@ public:
     void writeMesh(std::string _fileName);
     void bundlerReader(std::string _filename);
 
-    PolygonMesh mesh_; // TO TEST!! THIS SHOULD BE MOVED TO PRIVATE
+//    PolygonMesh mesh_; // TO TEST!! THIS SHOULD BE MOVED TO PRIVATE
 
 
 private:

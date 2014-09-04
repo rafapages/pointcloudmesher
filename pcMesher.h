@@ -21,6 +21,9 @@ public:
     // Get number of clouds
     unsigned int getNClouds();
 
+    // Get a Ptr to a cloud
+    PointCloud<PointXYZRGBNormalCam>::Ptr getPointCloudPtr(unsigned int _index);
+
     // Estimate the normals of a cloud and store them
     void estimateNormals(const unsigned int _index);
     void estimateAllNormals();
@@ -48,6 +51,7 @@ public:
 
     // Combine point clouds
     PointCloud<PointXYZRGBNormalCam> combinePointClouds();
+    PointCloud<PointXYZRGBNormalCam> combinePointClouds(std::vector<PointCloud<PointXYZRGBNormalCam>::Ptr > _pointclouds);
 
     // I/O functions
     void bundlerPointReader(PointXYZRGBNormalCam& _point, std::ifstream& _stream);
@@ -55,9 +59,6 @@ public:
     void writeOneMesh(const unsigned int _index, std::string _fileName);
     void writeMesh(std::string _fileName);
     void bundlerReader(std::string _filename);
-
-//    PolygonMesh mesh_; // TO TEST!! THIS SHOULD BE MOVED TO PRIVATE
-
 
 private:
 

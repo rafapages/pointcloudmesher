@@ -34,6 +34,10 @@ unsigned int PcMesher::getNClouds(){
     return nClouds_;
 }
 
+PointCloud<PointXYZRGBNormalCam>::Ptr PcMesher::getPointCloudPtr(unsigned int _index){
+    return pointClouds_[_index];
+}
+
 void PcMesher::estimateNormals(const unsigned int _index){
 
     std::cerr << "Estimating normals of pointcloud " << _index + 1 << "/" << nClouds_ << std::endl;
@@ -125,8 +129,8 @@ void PcMesher::planeSegmentation(){
     ExtractIndices<PointXYZRGBNormalCam> extract;
 
     int i = 0, nr_points = (int) cloud->points.size ();
-    // While 30% of the original cloud is still there
-    while (cloud->points.size () > 0.3 * nr_points)
+    // While 5% of the original cloud is still there
+    while (cloud->points.size () > 0.05 * nr_points)
     {
         // Segment the largest planar component from the remaining cloud
         seg.setInputCloud (cloud);
@@ -220,12 +224,42 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
 
             PointXYZRGBNormalCam searchPoint = meshCloud.points[face_it->vertices[i]];
 
+            // We first search for the closest point in the original point cloud to the searchPoint
+            std::vector<int> pointIdxNKNSearch(1);
+            std::vector<float> pointNKNSquaredDistance(1);
+
+            float radius;
+
+            if ( kdtree.nearestKSearch (searchPoint, 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ){
+                for (size_t i = 0; i < pointIdxNKNSearch.size(); ++i){ // It's just one iteration
+
+                    // Now we search for the K closest points to determine the point cloud density
+                    PointXYZRGBNormalCam anchorPoint = _cloud->points[pointIdxNKNSearch[i]];
+
+                    int K = 10;
+
+                    std::vector<int> pointIdx(K);
+                    std::vector<float> pointSquaredDistance(K);
+
+                    float sum_distance = 0.0;
+
+                    if (kdtree.nearestKSearch(anchorPoint, K, pointIdx, pointSquaredDistance) > 0){
+                        for (int j = 0; j < pointIdx.size(); ++j){
+                            sum_distance += sqrt(pointSquaredDistance[j]);
+                        }
+                    }
+
+                    radius = sum_distance / static_cast<float>(K) * 3.0f;
+                }
+            }
+
+
             // Neighbors within radius search
 
             std::vector<int> pointIdxRadiusSearch;
             std::vector<float> pointRadiusSquaredDistance;
 
-            float radius = MAXD;
+//            float radius = MAXD;
 
             // if there is no vertex in the input point cloud close to this current vertex of the mesh
             // the whole face is discarded
@@ -302,7 +336,7 @@ void PcMesher::readMesh(std::string _fileName){
 
 void PcMesher::writeOneMesh(const unsigned int _index, std::string _fileName){
 
-    std::cerr << "Exporting point cloud: " << _index << "/" << nClouds_ << std::endl;
+    std::cerr << "Exporting point cloud: " << _index + 1 << "/" << nClouds_ << std::endl;
 
     PointCloud<PointXYZRGBNormalCam> outPointCloud = *pointClouds_[_index];
 
@@ -316,6 +350,18 @@ PointCloud<PointXYZRGBNormalCam> PcMesher::combinePointClouds(){
 
     for (unsigned int i = 0; i < pointClouds_.size(); i++){
         outPointCloud += *pointClouds_[i];
+    }
+
+    return outPointCloud;
+
+}
+
+PointCloud<PointXYZRGBNormalCam> PcMesher::combinePointClouds(std::vector<PointCloud<PointXYZRGBNormalCam>::Ptr> _pointclouds){
+
+    PointCloud<PointXYZRGBNormalCam> outPointCloud;
+
+    for (unsigned int i = 0; i < _pointclouds.size(); i++){
+        outPointCloud += *_pointclouds[i];
     }
 
     return outPointCloud;
@@ -472,21 +518,30 @@ int main (int argc, char *argv[]){
     cloud.bundlerReader(argv[1]);
     cloud.writeMesh("input.ply");
 
-//    cloud.planeSegmentation();
+    cloud.planeSegmentation();
     cloud.estimateAllNormals();
     cloud.fixAllNormals();
 
 //    cloud.cylinderSegmentation();
 
-//    for (unsigned int i = 0; i < cloud.getNClouds(); i++){
+    for (unsigned int i = 0; i < cloud.getNClouds(); i++){
 
-//        std::stringstream ss;
-//        ss << "out_" << i << ".ply";
-//        cloud.writeOneMesh(i, ss.str());
+        std::stringstream ss;
+        ss << "out_" << i << ".ply";
+        cloud.writeOneMesh(i, ss.str());
 
-//    }
+    }
 
-    PointCloud<PointXYZRGBNormalCam> combinedCloud = cloud.combinePointClouds();
+    //--- I collect the pointclouds that are planes into one single pointcloud
+    std::vector<PointCloud<PointXYZRGBNormalCam>::Ptr> pointclouds;
+    for (unsigned int i = 1; i < cloud.getNClouds(); i++){
+        pointclouds.push_back(cloud.getPointCloudPtr(i));
+    }
+    //---
+
+
+//    PointCloud<PointXYZRGBNormalCam> combinedCloud = cloud.combinePointClouds();
+    PointCloud<PointXYZRGBNormalCam> combinedCloud = cloud.combinePointClouds(pointclouds);
     PointCloud<PointXYZRGBNormalCam>::Ptr combinedCloudPtr = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(combinedCloud);
 
     PolygonMesh first_mesh = cloud.surfaceReconstruction(combinedCloudPtr);

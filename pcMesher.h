@@ -24,6 +24,9 @@ public:
     // Get a Ptr to a cloud
     PointCloud<PointXYZRGBNormalCam>::Ptr getPointCloudPtr(unsigned int _index);
 
+    // Outlier filtering
+    void removeOutliers(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud);
+
     // Estimate the normals of a cloud and store them
     void estimateNormals(const unsigned int _index);
     void estimateAllNormals();

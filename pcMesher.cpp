@@ -38,6 +38,11 @@ PointCloud<PointXYZRGBNormalCam>::Ptr PcMesher::getPointCloudPtr(unsigned int _i
     return pointClouds_[_index];
 }
 
+void PcMesher::removeOutliers(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud){
+
+
+}
+
 void PcMesher::estimateNormals(const unsigned int _index){
 
     std::cerr << "Estimating normals of pointcloud " << _index + 1 << "/" << nClouds_ << std::endl;

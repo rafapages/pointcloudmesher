@@ -3,8 +3,8 @@
 #include <pcl/io/ply_io.h>
 #include <pcl/io/pcd_io.h>
 
+#include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/features/normal_3d.h>
-
 #include <pcl/kdtree/kdtree_flann.h>
 
 #include <pcl/conversions.h>
@@ -38,10 +38,39 @@ PointCloud<PointXYZRGBNormalCam>::Ptr PcMesher::getPointCloudPtr(unsigned int _i
     return pointClouds_[_index];
 }
 
-void PcMesher::removeOutliers(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud){
+void PcMesher::removeOutliers(PointCloud<PointXYZRGBNormalCam>::Ptr& _cloud){
 
+    StatisticalOutlierRemoval<PointXYZRGBNormalCam> sor;
+    sor.setInputCloud(_cloud);
+    sor.setMeanK(50);
+    sor.setStddevMulThresh(1.0);
+    sor.filter(*_cloud);
 
 }
+
+void PcMesher::removeOutliers(unsigned int _index){
+
+    std::cerr << "Removing outliers of pointcloud " << _index + 1 << "/" << nClouds_ << std::endl;
+
+    PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[_index];
+
+    StatisticalOutlierRemoval<PointXYZRGBNormalCam> sor;
+    sor.setInputCloud(cloud);
+    sor.setMeanK(50);
+    sor.setStddevMulThresh(1.0);
+    sor.filter(*cloud);
+
+}
+
+void PcMesher::removeAllOutliers(){
+
+    for (unsigned int i = 0; i < pointClouds_.size(); i++){
+        this->removeOutliers(i);
+    }
+
+}
+
+
 
 void PcMesher::estimateNormals(const unsigned int _index){
 
@@ -522,6 +551,8 @@ int main (int argc, char *argv[]){
 
     cloud.bundlerReader(argv[1]);
     cloud.writeMesh("input.ply");
+
+    cloud.removeAllOutliers();
 
     cloud.planeSegmentation();
     cloud.estimateAllNormals();

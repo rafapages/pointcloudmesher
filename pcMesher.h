@@ -51,9 +51,13 @@ public:
 
     // Mesh refining
     PolygonMesh deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh _inputMesh);
+    PolygonMesh decimateMesh(const PolygonMesh& _mesh);
 
     // Adding every camera to the cloud to see if it works
     void drawCameras();
+
+    // Export a txt file with the camera setup information for the multi-texturing process
+    void writeCameraSetupFile(std::string _fileName, const int _width, const int _height);
 
     // Combine point clouds
     PointCloud<PointXYZRGBNormalCam> combinePointClouds();

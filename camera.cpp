@@ -14,7 +14,7 @@ Camera::~Camera(){
 
 }
 
-float Camera::getFocalLenght(){
+float Camera::getFocalLength(){
     return f_;
 }
 
@@ -26,7 +26,7 @@ Eigen::Vector3f Camera::getTranslationVector(){
     return t_;
 }
 
-void Camera::setFocalLenght(const float _f){
+void Camera::setFocalLength(const float _f){
     f_ = _f;
 }
 
@@ -84,7 +84,7 @@ void Camera::readCamera(std::ifstream& _stream){
             ss >> k2;
             ss.str(std::string());
             ss.clear();
-            this->setFocalLenght(f);
+            this->setFocalLength(f);
             this->setDistortionCoefficients(k1,k2);
         }
         // Last line has the translation vector

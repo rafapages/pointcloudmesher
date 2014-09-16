@@ -13,11 +13,11 @@ public:
     Camera();
     ~Camera();
 
-    float getFocalLenght();
+    float getFocalLength();
     Eigen::Matrix3f getRotationMatrix();
     Eigen::Vector3f getTranslationVector();
 
-    void setFocalLenght(const float _f);
+    void setFocalLength(const float _f);
     void setDistortionCoefficients(const float _k1, const float _k2);
     void setRotationMatrix(const Eigen::Matrix3f _R);
     void setTranslationVector(const Eigen::Vector3f _t);
@@ -29,7 +29,7 @@ public:
 
 
 private:
-    float f_; // Focal lenght
+    float f_; // Focal length
     float k1_, k2_; // Radial distortion coefficients
     Eigen::Matrix3f R_; // Rotation matrix
     Eigen::Vector3f t_; // Camera translation vector

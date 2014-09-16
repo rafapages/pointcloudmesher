@@ -17,6 +17,8 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/extract_indices.h>
 
+#include <pcl/surface/vtk_smoothing/vtk_mesh_quadric_decimation.h>
+
 #include "pcMesher.h"
 
 PcMesher::PcMesher(){
@@ -199,6 +201,51 @@ void PcMesher::planeSegmentation(){
 
 void PcMesher::cylinderSegmentation(){
 
+    PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[0];
+//    PointCloud<Normal>::Ptr normal_cloud (new PointCloud<Normal>);
+
+//    Normal n (cloud->points[0].normal_x, cloud->points[0].normal_y, cloud->points[0].normal_z);
+
+    SACSegmentationFromNormals<PointXYZRGBNormalCam, PointXYZRGBNormalCam> seg;
+    ExtractIndices<PointXYZRGBNormalCam> extract;
+
+    ModelCoefficients::Ptr coefficients (new ModelCoefficients ());
+    PointIndices::Ptr inliers (new PointIndices ());
+
+    // Create the segmentation object for cylinder segmentation and set all the parameters
+    seg.setOptimizeCoefficients (true);
+    seg.setModelType (SACMODEL_CYLINDER);
+    seg.setMethodType (SAC_RANSAC);
+    seg.setNormalDistanceWeight (0.1);
+    seg.setMaxIterations (1000);
+    seg.setDistanceThreshold (0.05);
+    seg.setRadiusLimits (0, 0.1);
+    seg.setInputCloud (cloud);
+    seg.setInputNormals (cloud);
+
+
+    // Obtain the cylinder inliers and coefficients
+    seg.segment (*inliers, *coefficients);
+    std::cerr << "Cylinder coefficients: " << *coefficients << std::endl;
+
+    // Write the cylinder inliers to disk
+    extract.setInputCloud (cloud);
+    extract.setIndices (inliers);
+    extract.setNegative (false);
+
+    pcl::PointCloud<PointXYZRGBNormalCam>::Ptr cloud_cylinder (new pcl::PointCloud<PointXYZRGBNormalCam> ());
+    // We create a pointer to a copy of the plane cloud to be able to store properly
+    PointCloud<PointXYZRGBNormalCam>::Ptr cyl_cloud = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(*cloud_cylinder);
+
+    extract.filter (*cloud_cylinder);
+    if (cloud_cylinder->points.empty ()) {
+      std::cerr << "Can't find the cylindrical component." << std::endl;
+    } else {
+        pointClouds_.push_back(cyl_cloud);
+        nClouds_++;
+    }
+
+
 }
 
 
@@ -324,6 +371,21 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
 
 }
 
+PolygonMesh PcMesher::decimateMesh(const PolygonMesh& _mesh){
+
+    std::cerr << "Decimating mesh" << std::endl;
+
+    PolygonMesh::Ptr meshPtr = boost::make_shared<PolygonMesh>(_mesh);
+
+    PolygonMesh outputMesh;
+    MeshQuadricDecimationVTK decimator;
+    decimator.setTargetReductionFactor(0.5);
+    decimator.setInputMesh(meshPtr);
+    decimator.process(outputMesh);
+
+    return outputMesh;
+}
+
 void PcMesher::drawCameras(){
 
     PointCloud<PointXYZRGBNormalCam>::Ptr camera_cloud (new PointCloud<PointXYZRGBNormalCam>);
@@ -344,6 +406,46 @@ void PcMesher::drawCameras(){
 
     pointClouds_.push_back(camera_cloud);
     nClouds_++;
+
+}
+
+void PcMesher::writeCameraSetupFile(std::string _fileName, const int _width, const int _height){
+
+    std::cerr << "Writing camera setup file" << std::endl;
+
+    std::ofstream outputFile(_fileName);
+
+    outputFile << cameras_.size() << " " << _width << " " << _height << "\n";
+
+    for (unsigned int i = 0; i < cameras_.size(); i++){
+
+        int mid_width = _width * 0.5;
+        int mid_height = _height * 0.5;
+
+        // Intrinsic parameteres
+        outputFile << cameras_[i].getFocalLength() << " 0 " << mid_width << " ";
+        outputFile << "0 " << cameras_[i].getFocalLength() << " " << mid_height << " ";
+        outputFile << "0 0 1    ";
+
+        Eigen::Matrix3f R = cameras_[i].getRotationMatrix();
+
+        // Extrinsic parameters
+        outputFile << R(0,0) << " " << R(0,1) << " " << R(0,2) << " ";
+        outputFile << R(1,0) << " " << R(1,1) << " " << R(1,2) << " ";
+        outputFile << R(2,0) << " " << R(2,1) << " " << R(2,2) << " ";
+//        outputFile << R(0,0) << " " << R(1,0) << " " << R(2,0) << " ";
+//        outputFile << R(0,1) << " " << R(1,1) << " " << R(2,1) << " ";
+//        outputFile << R(0,2) << " " << R(1,2) << " " << R(2,2) << " ";
+
+//        Eigen::Vector3f p = cameras_[i].getCameraPosition();
+        Eigen::Vector3f p = cameras_[i].getTranslationVector();
+
+        // Camera position
+        outputFile << p(0) << " " << p(1) << " " << p(2) << "\n";
+
+    }
+
+    outputFile.close();
 
 }
 
@@ -550,15 +652,17 @@ int main (int argc, char *argv[]){
     PcMesher cloud;
 
     cloud.bundlerReader(argv[1]);
+    cloud.writeCameraSetupFile("cameras.txt", 2868, 4310);
     cloud.writeMesh("input.ply");
 
     cloud.removeAllOutliers();
+
+//    cloud.cylinderSegmentation();
 
     cloud.planeSegmentation();
     cloud.estimateAllNormals();
     cloud.fixAllNormals();
 
-//    cloud.cylinderSegmentation();
 
     for (unsigned int i = 0; i < cloud.getNClouds(); i++){
 
@@ -583,8 +687,11 @@ int main (int argc, char *argv[]){
     PolygonMesh first_mesh = cloud.surfaceReconstruction(combinedCloudPtr);
 
     PolygonMesh m = cloud.deleteWrongVertices(combinedCloudPtr, first_mesh);
+    PolygonMesh simpleM = cloud.decimateMesh(m);
 
     io::savePLYFile("limpio.ply", m);
+    io::savePLYFile("limpio_decimated.ply", simpleM);
+
 
 //    cloud.drawCameras();
 

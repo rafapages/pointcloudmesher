@@ -425,20 +425,20 @@ void PcMesher::writeCameraSetupFile(std::string _fileName, const int _width, con
         // Intrinsic parameteres
         outputFile << cameras_[i].getFocalLength() << " 0 " << mid_width << " ";
         outputFile << "0 " << cameras_[i].getFocalLength() << " " << mid_height << " ";
-        outputFile << "0 0 1    ";
+        outputFile << "0 0 1 ";
 
         Eigen::Matrix3f R = cameras_[i].getRotationMatrix();
 
         // Extrinsic parameters
         outputFile << R(0,0) << " " << R(0,1) << " " << R(0,2) << " ";
-        outputFile << R(1,0) << " " << R(1,1) << " " << R(1,2) << " ";
-        outputFile << R(2,0) << " " << R(2,1) << " " << R(2,2) << " ";
+        outputFile << -R(1,0) << " " << -R(1,1) << " " << -R(1,2) << " ";
+        outputFile << -R(2,0) << " " << -R(2,1) << " " << -R(2,2) << " ";
 //        outputFile << R(0,0) << " " << R(1,0) << " " << R(2,0) << " ";
 //        outputFile << R(0,1) << " " << R(1,1) << " " << R(2,1) << " ";
 //        outputFile << R(0,2) << " " << R(1,2) << " " << R(2,2) << " ";
 
-//        Eigen::Vector3f p = cameras_[i].getCameraPosition();
-        Eigen::Vector3f p = cameras_[i].getTranslationVector();
+        Eigen::Vector3f p = cameras_[i].getCameraPosition();
+//        Eigen::Vector3f p = cameras_[i].getTranslationVector();
 
         // Camera position
         outputFile << p(0) << " " << p(1) << " " << p(2) << "\n";

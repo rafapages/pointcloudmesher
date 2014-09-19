@@ -68,7 +68,8 @@ public:
     void readMesh(std::string _fileName);
     void writeOneMesh(const unsigned int _index, std::string _fileName);
     void writeMesh(std::string _fileName);
-    void bundlerReader(std::string _filename);
+    void bundlerReader(std::string _fileName);
+    void nvmCameraReader(std::string _fileName);
 
 private:
 
@@ -77,6 +78,8 @@ private:
 
     std::vector<Camera> cameras_;
     unsigned int nCameras_;
+
+    std::vector<unsigned int> cameraOrder_;
 
 
 

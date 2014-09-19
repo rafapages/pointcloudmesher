@@ -417,29 +417,28 @@ void PcMesher::writeCameraSetupFile(std::string _fileName, const int _width, con
 
     outputFile << cameras_.size() << " " << _width << " " << _height << "\n";
 
-    for (unsigned int i = 0; i < cameras_.size(); i++){
+//    for (unsigned int i = 0; i < cameras_.size(); i++){
+    for (unsigned int i = 0; i < cameraOrder_.size(); i++){
+
+        const int currentCam = cameraOrder_[i];
 
         int mid_width = _width * 0.5;
         int mid_height = _height * 0.5;
 
         // Intrinsic parameteres
-        outputFile << cameras_[i].getFocalLength() << " 0 " << mid_width << " ";
-        outputFile << "0 " << cameras_[i].getFocalLength() << " " << mid_height << " ";
+        outputFile << cameras_[currentCam].getFocalLength() << " 0 " << mid_width << " ";
+        outputFile << "0 " << cameras_[currentCam].getFocalLength() << " " << mid_height << " ";
         outputFile << "0 0 1 ";
 
-        Eigen::Matrix3f R = cameras_[i].getRotationMatrix();
+        Eigen::Matrix3f R = cameras_[currentCam].getRotationMatrix();
 
         // Extrinsic parameters
         outputFile << R(0,0) << " " << R(0,1) << " " << R(0,2) << " ";
         outputFile << -R(1,0) << " " << -R(1,1) << " " << -R(1,2) << " ";
         outputFile << -R(2,0) << " " << -R(2,1) << " " << -R(2,2) << " ";
-//        outputFile << R(0,0) << " " << R(1,0) << " " << R(2,0) << " ";
-//        outputFile << R(0,1) << " " << R(1,1) << " " << R(2,1) << " ";
-//        outputFile << R(0,2) << " " << R(1,2) << " " << R(2,2) << " ";
 
-        Eigen::Vector3f p = cameras_[i].getCameraPosition();
-//        Eigen::Vector3f p = cameras_[i].getTranslationVector();
 
+        Eigen::Vector3f p = cameras_[currentCam].getCameraPosition();
         // Camera position
         outputFile << p(0) << " " << p(1) << " " << p(2) << "\n";
 
@@ -581,11 +580,11 @@ void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_
 }
 
 
-void PcMesher::bundlerReader(std::string _filename){
+void PcMesher::bundlerReader(std::string _fileName){
 
     std::cerr << "Reading Bundler file" << std::endl;
 
-    std::ifstream inputFile(_filename);
+    std::ifstream inputFile(_fileName);
     std::string line;
 
     int nPoints = 0;
@@ -645,6 +644,53 @@ void PcMesher::bundlerReader(std::string _filename){
 
 }
 
+void PcMesher::nvmCameraReader(std::string _fileName){
+
+    std::cerr << "Reading nvm file" << std::endl;
+
+    cameraOrder_.resize(nCameras_);
+
+    std::ifstream inputFile(_fileName);
+    std::string line;
+
+    if (inputFile.is_open()){
+
+        do {
+            std::getline(inputFile, line);
+            if (line.empty()) std::getline(inputFile, line);
+        } while (line.at(0) != 'i');
+
+        boost::tokenizer<> tokens(line);
+        boost::tokenizer<>::iterator tit = tokens.begin();
+        std::stringstream ss;
+        tit++;
+        ss << *tit;
+        int ncam;
+        ss >> ncam;
+
+        cameraOrder_[ncam-1] = 0; // 1 - 1
+
+        for (unsigned int i = 1; i < nCameras_; i++){
+            std::getline(inputFile, line);
+            boost::tokenizer<> moreTokens(line);
+            boost::tokenizer<>::iterator mtit = moreTokens.begin();
+            mtit++;
+            std::stringstream nss;
+            nss << *mtit;
+            nss >> ncam;
+
+            cameraOrder_[ncam-1] = i;
+
+        }
+
+        inputFile.close();
+
+
+    } else {
+        std::cerr << "Unable to open Bundle file" << std::endl;
+    }
+}
+
 
 
 int main (int argc, char *argv[]){
@@ -652,6 +698,7 @@ int main (int argc, char *argv[]){
     PcMesher cloud;
 
     cloud.bundlerReader(argv[1]);
+    cloud.nvmCameraReader(argv[2]);
     cloud.writeCameraSetupFile("cameras.txt", 2868, 4310);
     cloud.writeMesh("input.ply");
 

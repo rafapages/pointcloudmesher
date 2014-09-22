@@ -330,7 +330,7 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
                         }
                     }
 
-                    radius = sum_distance / static_cast<float>(K) * 3.0f;
+                    radius = sum_distance / static_cast<float>(K) * 5.0f; // 3.0f
                 }
             }
 
@@ -658,7 +658,7 @@ void PcMesher::nvmCameraReader(std::string _fileName){
         do {
             std::getline(inputFile, line);
             if (line.empty()) std::getline(inputFile, line);
-        } while (line.at(0) != 'i');
+        } while ((line.at(0) != 'i') && (line.at(0) != 'I'));
 
         boost::tokenizer<> tokens(line);
         boost::tokenizer<>::iterator tit = tokens.begin();
@@ -691,6 +691,66 @@ void PcMesher::nvmCameraReader(std::string _fileName){
     }
 }
 
+void PcMesher::readImageList(std::string _fileName){
+
+    std::cerr << "Reading image list file" << std::endl;
+
+    cameraOrder_.resize(nCameras_);
+
+    std::ifstream inputFile(_fileName);
+    std::string line;
+
+    std::vector<int> imageNumbers;
+    imageNumbers.clear();
+
+    if (inputFile.is_open()){
+
+        do {
+            std::getline(inputFile, line);
+            if (line.empty()) std::getline(inputFile, line);
+        } while ((line.at(0) != 'i') && (line.at(0) != 'I'));
+
+        boost::tokenizer<> tokens(line);
+        boost::tokenizer<>::iterator tit = tokens.begin();
+        std::stringstream ss;
+        tit++;
+        ss << *tit;
+        int ncam;
+        ss >> ncam;
+
+        imageNumbers.push_back(ncam);
+
+        for (unsigned int i = 1; i < nCameras_; i++){
+            std::getline(inputFile, line);
+            boost::tokenizer<> moreTokens(line);
+            boost::tokenizer<>::iterator mtit = moreTokens.begin();
+            mtit++;
+            std::stringstream nss;
+            nss << *mtit;
+            nss >> ncam;
+
+            imageNumbers.push_back(ncam);
+
+        }
+
+        inputFile.close();
+
+
+    } else {
+        std::cerr << "Unable to open Bundle file" << std::endl;
+    }
+
+    // With this, we are still able to use the numbers if the list does not start in 0 or 1
+    int min = *std::min_element(imageNumbers.begin(), imageNumbers.end());
+
+    for (unsigned int i = 0; i < cameraOrder_.size(); i++){
+
+        const int index = imageNumbers[i]-min;
+        cameraOrder_[index] = i;
+    }
+
+}
+
 
 
 int main (int argc, char *argv[]){
@@ -698,8 +758,10 @@ int main (int argc, char *argv[]){
     PcMesher cloud;
 
     cloud.bundlerReader(argv[1]);
-    cloud.nvmCameraReader(argv[2]);
-    cloud.writeCameraSetupFile("cameras.txt", 2868, 4310);
+//    cloud.nvmCameraReader(argv[2]);
+    cloud.readImageList(argv[2]);
+    cloud.writeCameraSetupFile("cameras.txt", 4000, 3000);
+//    cloud.writeCameraSetupFile("cameras.txt", 2868, 4310);
     cloud.writeMesh("input.ply");
 
     cloud.removeAllOutliers();

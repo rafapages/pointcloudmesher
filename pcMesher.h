@@ -70,6 +70,7 @@ public:
     void writeMesh(std::string _fileName);
     void bundlerReader(std::string _fileName);
     void nvmCameraReader(std::string _fileName);
+    void readImageList(std::string _fileName);
 
 private:
 

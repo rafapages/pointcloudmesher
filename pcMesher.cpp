@@ -157,8 +157,8 @@ void PcMesher::planeSegmentation(){
     seg.setModelType (SACMODEL_PLANE);
     seg.setMethodType (SAC_RANSAC);
     seg.setMaxIterations (1000);
-//    seg.setDistanceThreshold (0.01);
-    seg.setDistanceThreshold(0.05);
+    seg.setDistanceThreshold (0.01);
+//    seg.setDistanceThreshold(0.05);
 
 
     // Create the filtering object
@@ -330,7 +330,7 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
                         }
                     }
 
-                    radius = sum_distance / static_cast<float>(K) * 5.0f; // 3.0f
+                    radius = sum_distance / static_cast<float>(K) * 2.0f; // 3.0f
                 }
             }
 
@@ -592,7 +592,7 @@ void PcMesher::bundlerReader(std::string _fileName){
 
     if (inputFile.is_open()){
 
-        // We avoid all possible commentaries in the firsts lines
+        // We avoid all possible comments in the firsts lines
         do {
             std::getline(inputFile, line);
         } while (line.at(0) == '#');
@@ -705,10 +705,10 @@ void PcMesher::readImageList(std::string _fileName){
 
     if (inputFile.is_open()){
 
-        do {
+//        do {
             std::getline(inputFile, line);
-            if (line.empty()) std::getline(inputFile, line);
-        } while ((line.at(0) != 'i') && (line.at(0) != 'I'));
+//            if (line.empty()) std::getline(inputFile, line);
+//        } while ((line.at(0) != 'i') && (line.at(0) != 'I'));
 
         boost::tokenizer<> tokens(line);
         boost::tokenizer<>::iterator tit = tokens.begin();

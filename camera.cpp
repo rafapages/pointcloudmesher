@@ -63,6 +63,8 @@ void Camera::readCamera(std::ifstream& _stream){
     for (unsigned int cam_line = 0; cam_line < 5; cam_line++){
 
         std::getline(_stream, line);
+        while (line.empty()) std::getline(_stream, line);
+
 
         boost::tokenizer<boost::char_separator<char> > cam_tokens(line, boost::char_separator<char>(" "));
         boost::tokenizer<boost::char_separator<char> >::iterator ctit = cam_tokens.begin();

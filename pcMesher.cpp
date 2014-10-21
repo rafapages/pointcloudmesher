@@ -157,8 +157,8 @@ void PcMesher::planeSegmentation(){
     seg.setModelType (SACMODEL_PLANE);
     seg.setMethodType (SAC_RANSAC);
     seg.setMaxIterations (1000);
-    seg.setDistanceThreshold (0.01);
-//    seg.setDistanceThreshold(0.05);
+//    seg.setDistanceThreshold (0.01);
+    seg.setDistanceThreshold(0.05);
 
 
     // Create the filtering object
@@ -519,6 +519,7 @@ void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_
     for (unsigned int point_line = 0; point_line < 3; point_line++){
 
         std::getline(_stream, line);
+        while (line.empty()) std::getline(_stream, line);
 
         boost::tokenizer<boost::char_separator<char> > point_tokens(line, boost::char_separator<char>(" "));
         boost::tokenizer<boost::char_separator<char> >::iterator ptit = point_tokens.begin();
@@ -759,8 +760,8 @@ int main (int argc, char *argv[]){
 
     cloud.bundlerReader(argv[1]);
 //    cloud.nvmCameraReader(argv[2]);
-    cloud.readImageList(argv[2]);
-    cloud.writeCameraSetupFile("cameras.txt", 4000, 3000);
+//    cloud.readImageList(argv[2]);
+//    cloud.writeCameraSetupFile("cameras.txt", 4000, 3000);
 //    cloud.writeCameraSetupFile("cameras.txt", 2868, 4310);
     cloud.writeMesh("input.ply");
 

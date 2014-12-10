@@ -9,4 +9,4 @@ link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
 add_executable(pcMesher pcMesher.cpp camera.cpp)
-target_link_libraries(pcMesher ${PCL_LIBRARIES})
+target_link_libraries(pcMesher ${PCL_LIBRARIES} freeimageplus)

@@ -6,7 +6,6 @@
 
 #include <pcl/surface/poisson.h>
 
-
 #include "pointXYZRGBNormalCam.h"
 #include "camera.h"
 
@@ -49,6 +48,8 @@ public:
     PolygonMesh surfaceReconstruction(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud);
     void allSurfaceReconstruction();
 
+    PolygonMesh greedyReconstruction(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud);
+
     // Mesh refining
     PolygonMesh deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh _inputMesh);
     PolygonMesh decimateMesh(const PolygonMesh& _mesh);
@@ -58,6 +59,8 @@ public:
 
     // Export a txt file with the camera setup information for the multi-texturing process
     void writeCameraSetupFile(std::string _fileName, const int _width, const int _height);
+    void writeCameraSetupFile(std::string _fileName);
+    void getImageDimensions(std::string _imageName, unsigned int& _height, unsigned int& _width);
 
     // Combine point clouds
     PointCloud<PointXYZRGBNormalCam> combinePointClouds();
@@ -69,7 +72,7 @@ public:
     void writeOneMesh(const unsigned int _index, std::string _fileName);
     void writeMesh(std::string _fileName);
     void bundlerReader(std::string _fileName);
-    void nvmCameraReader(std::string _fileName);
+//    void nvmCameraReader(std::string _fileName);
     void readImageList(std::string _fileName);
 
 private:
@@ -80,9 +83,8 @@ private:
     std::vector<Camera> cameras_;
     unsigned int nCameras_;
 
-    std::vector<unsigned int> cameraOrder_;
-
-
+//    std::vector<unsigned int> cameraOrder_;
+    std::vector<std::string> imageList_;
 
 };
 

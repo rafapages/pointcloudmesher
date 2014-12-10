@@ -508,8 +508,8 @@ void PcMesher::writeCameraSetupFile(std::string _fileName){
 
 
         Eigen::Vector3f p = cameras_[currentCam].getCameraPosition();
-        // Camera position
-        outputFile << p(0) << " " << p(1) << " " << p(2) << "\n";
+        // Camera position and image dimensions
+        outputFile << p(0) << " " << p(1) << " " << p(2) << " " << width << " " << height << "\n";
 
     }
 

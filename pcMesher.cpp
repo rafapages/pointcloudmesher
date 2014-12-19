@@ -258,7 +258,7 @@ void PcMesher::surfaceReconstruction(const unsigned int _index){
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[_index];
 
     Poisson<PointXYZRGBNormalCam> poisson;
-    poisson.setDepth(9);
+    poisson.setDepth(10);
     poisson.setInputCloud(cloud);
     PolygonMesh mesh;
     poisson.reconstruct(mesh);
@@ -272,7 +272,7 @@ void PcMesher::surfaceReconstruction(const unsigned int _index){
 PolygonMesh PcMesher::surfaceReconstruction(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud){
 
     Poisson<PointXYZRGBNormalCam> poisson;
-    poisson.setDepth(9);
+    poisson.setDepth(10);
     poisson.setInputCloud(_cloud);
     PolygonMesh mesh;
     poisson.reconstruct(mesh);
@@ -357,7 +357,7 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
                         }
                     }
 
-                    radius = sum_distance / static_cast<float>(K) * 3.0f; // 3.0f
+                    radius = sum_distance / static_cast<float>(K) * 5.0f; // 3.0f
                 }
             }
 
@@ -525,9 +525,7 @@ void PcMesher::getImageDimensions(std::string _imageName, unsigned int &_height,
     strcpy(name, _imageName.c_str());
 
     if (!input.load(name, FIF_LOAD_NOPIXELS)){
-//    if (!input.load(name)){
-
-        std::cerr << "WTF?" << std::endl;
+        std::cerr << "Image couldn't be loaded!" << std::endl;
     }
 
     _height = input.getHeight();
@@ -825,6 +823,11 @@ void PcMesher::readImageList(std::string _fileName){
 
 int main (int argc, char *argv[]){
 
+    if (argc != 3){
+        std::cerr << "Wrong number of input paremeters" << std::endl;
+        return 0;
+    }
+
     PcMesher cloud;
 
     // Reading input parameteres: blunder file and image list
@@ -836,7 +839,7 @@ int main (int argc, char *argv[]){
     cloud.writeMesh("input.ply");
 
     cloud.removeAllOutliers();
-    cloud.removeAllOutliers();
+//    cloud.removeAllOutliers();
     cloud.writeMesh("sinoutliers.ply");
 
 //    cloud.cylinderSegmentation();
@@ -864,12 +867,11 @@ int main (int argc, char *argv[]){
 
     PointCloud<PointXYZRGBNormalCam> combinedCloud = cloud.combinePointClouds(pointclouds);
     PointCloud<PointXYZRGBNormalCam>::Ptr combinedCloudPtr = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(combinedCloud);
+    io::savePLYFile("combined_planes.ply", combinedCloud);
+
 
     PolygonMesh first_mesh = cloud.surfaceReconstruction(combinedCloudPtr);
     io::savePLYFile("poisson.ply", first_mesh);
-
-//    PolygonMesh greedy_mesh = cloud.greedyReconstruction(combinedCloudPtr);
-//    io::savePLYFile("greedy.ply", greedy_mesh);
 
     PolygonMesh m = cloud.deleteWrongVertices(combinedCloudPtr, first_mesh);
 //    PolygonMesh simpleM = cloud.decimateMesh(m);
@@ -883,4 +885,28 @@ int main (int argc, char *argv[]){
     cloud.writeMesh("output.ply");
 
     return 0;
+
+//    //------------------------------------------------------------------------
+//    // Just Poisson
+//    //------------------------------------------------------------------------
+
+//    if (argc != 2){
+//        std::cerr << "Wrong number of input paremeters" << std::endl;
+//        return 0;
+//    }
+
+//    PcMesher cloud;
+
+//    // Reading input parameteres: blunder file and image list
+//    cloud.readMesh(argv[1]);
+
+//    PolygonMesh first_mesh = cloud.surfaceReconstruction(cloud.getPointCloudPtr(0));
+//    io::savePLYFile("poisson_v2.ply", first_mesh);
+
+//    PolygonMesh m = cloud.deleteWrongVertices(cloud.getPointCloudPtr(0), first_mesh);
+
+//    io::savePLYFile("poisson_limpio_v2.ply", m);
+
+//    return 0;
+
 }

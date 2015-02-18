@@ -174,7 +174,7 @@ void PcMesher::segmentPlanes(){
     seg.setModelType (SACMODEL_PLANE);
     seg.setMethodType (SAC_RANSAC);
     seg.setMaxIterations (1000);
-    seg.setDistanceThreshold(0.01);
+    seg.setDistanceThreshold(0.1);
 
 
     // Create the filtering object
@@ -199,7 +199,7 @@ void PcMesher::segmentPlanes(){
         extract.filter (*cloud_p);
 
         // Indices to outliers
-//        extract.getRemovedIndices(lastOutliers);
+        extract.getRemovedIndices(lastOutliers);
 
         std::cerr << "PointCloud #" << i+1 << " representing the planar component: " << cloud_p->width * cloud_p->height << " data points. Points reimaning: " << lastOutliers.indices.size() << std::endl;
 
@@ -212,7 +212,7 @@ void PcMesher::segmentPlanes(){
         // Write plane in ply file
         std::stringstream ss;
         ss << "out_" << i+1 << ".ply";
-        std::cerr << "PointCloud #" << i+1 << " exported." <<
+        std::cerr << "PointCloud #" << i+1 << " exported." << std::endl;
         io::savePLYFile(ss.str(), *plane_cloud);
 
         // Create the filtering object
@@ -617,6 +617,49 @@ PointCloud<PointXYZRGBNormalCam> PcMesher::combinePointClouds(std::vector<PointC
 
 }
 
+void PcMesher::asignCam2Mesh(const PolygonMesh &_mesh, const PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, const std::string _fileName){
+
+    std::ofstream outputFile(_fileName);
+
+    KdTreeFLANN<PointXYZRGBNormalCam> kdtree;
+    kdtree.setInputCloud(_cloud);
+
+    // Obtaining a PointCloud from a PointCloud2
+    PointCloud<PointXYZRGBNormalCam> meshCloud;
+    fromPCLPointCloud2(_mesh.cloud, meshCloud);
+    int nVtx = meshCloud.height * meshCloud.width;
+
+    std::vector<std::vector<int> > meshCloudCorrespondance(nVtx);
+
+    // for each vertex of the mesh
+    for (unsigned int v = 0; v < nVtx; v++){
+
+        PointXYZRGBNormalCam searchPoint = meshCloud.points[v];
+        std::vector<int> pointIdxNKNSearch(1); // The closest. Just one.
+        std::vector<float> pointNKNSquaredDistance(1);
+
+        if (kdtree.nearestKSearch(searchPoint, 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0){
+            for (size_t i = 0; i < pointIdxNKNSearch.size(); ++i){ // This is stupid, it's just one iteration
+                meshCloudCorrespondance[v] = camPerVtx_[pointIdxNKNSearch[i]];
+            }
+        }
+    }
+
+    // Exporting the file...
+    for (unsigned int i = 0; i < nVtx; i++){
+        std::cerr << meshCloud.points[i].x << " " << meshCloud.points[i].y << " " << meshCloud.points[i].z << std::endl;
+        std::vector<int> current = meshCloudCorrespondance[i];
+        for (unsigned int j = 0; j < current.size(); j++){
+            outputFile << current[j] << " ";
+        }
+        outputFile << "\n";
+
+    }
+
+    outputFile.close();
+
+}
+
 
 // All the point clouds in the vector are concatenated and printed into one file
 void PcMesher::writeMesh(std::string _fileName){
@@ -702,7 +745,7 @@ void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_
 }
 
 
-void PcMesher::bundlerReader(std::string _fileName){
+void PcMesher::bundlerReader(const std::string _fileName){
 
     std::cerr << "Reading Bundler file" << std::endl;
 
@@ -766,7 +809,7 @@ void PcMesher::bundlerReader(std::string _fileName){
 
 }
 
-void PcMesher::readImageList(std::string _fileName){
+void PcMesher::readImageList(const std::string _fileName){
 
     std::cerr << "Reading image list file" << std::endl;
 
@@ -792,7 +835,7 @@ void PcMesher::readImageList(std::string _fileName){
 
 }
 
-void PcMesher::exportIndices(PointIndices& _indices, std::string _fileName){
+void PcMesher::exportIndices(PointIndices& _indices, const std::string _fileName){
 
     std::cerr << "Exporting a txt file with points not included in any plane" << std::endl;
 
@@ -807,7 +850,7 @@ void PcMesher::exportIndices(PointIndices& _indices, std::string _fileName){
 }
 
 
-void PcMesher::exportCamPerVtx(std::string _fileName){
+void PcMesher::exportCamPerVtx(const std::string _fileName){
 
     std::ofstream outputFile(_fileName);
 
@@ -818,6 +861,8 @@ void PcMesher::exportCamPerVtx(std::string _fileName){
         }
         outputFile << "\n";
     }
+
+    outputFile.close();
 
 }
 

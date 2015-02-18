@@ -68,17 +68,19 @@ public:
     PointCloud<PointXYZRGBNormalCam> combinePointClouds();
     PointCloud<PointXYZRGBNormalCam> combinePointClouds(std::vector<PointCloud<PointXYZRGBNormalCam>::Ptr > _pointclouds);
 
+    // Asign cameras to mesh and export a file with it
+    void asignCam2Mesh(const PolygonMesh& _mesh, const PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, const std::string _fileName);
+
     // I/O functions
     void bundlerPointReader(PointXYZRGBNormalCam& _point, std::ifstream& _stream);
-    void readMesh(std::string _fileName);
-    void writeOneMesh(const unsigned int _index, std::string _fileName);
-    void writeMesh(std::string _fileName);
-    void bundlerReader(std::string _fileName);
-//    void nvmCameraReader(std::string _fileName);
-    void readImageList(std::string _fileName);
+    void readMesh(const std::string _fileName);
+    void writeOneMesh(const unsigned int _index, const std::string _fileName);
+    void writeMesh(const std::string _fileName);
+    void bundlerReader(const std::string _fileName);
+    void readImageList(const std::string _fileName);
 
-    void exportIndices (PointIndices& _indices, std::string _fileName);
-    void exportCamPerVtx (std::string _fileName);
+    void exportIndices (PointIndices& _indices, const std::string _fileName);
+    void exportCamPerVtx (const std::string _fileName);
 
 private:
 

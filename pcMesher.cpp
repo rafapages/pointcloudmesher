@@ -78,8 +78,7 @@ void PcMesher::removeOutliers(unsigned int _index){
 
     // Indices to outliers
     sor.getRemovedIndices(outliers);
-
-    // TODAVÍA HAY QUE FILTRAR LA LISTA DE CORRESPONDENCIAS!!!!
+    removeOutliersFromCamPerVtx(outliers);
 
 }
 
@@ -791,66 +790,6 @@ void PcMesher::readImageList(std::string _fileName){
 
     inputFile.close();
 
-
-    //-------------------------------//-------------------------------//-------------------------------
-
-
-//    std::cerr << "Reading image list file" << std::endl;
-
-//    cameraOrder_.resize(nCameras_);
-
-//    std::ifstream inputFile(_fileName);
-//    std::string line;
-
-//    std::vector<int> imageNumbers;
-//    imageNumbers.clear();
-
-//    if (inputFile.is_open()){
-
-////        do {
-//            std::getline(inputFile, line);
-////            if (line.empty()) std::getline(inputFile, line);
-////        } while ((line.at(0) != 'i') && (line.at(0) != 'I'));
-
-//        boost::tokenizer<> tokens(line);
-//        boost::tokenizer<>::iterator tit = tokens.begin();
-//        std::stringstream ss;
-//        tit++;
-//        ss << *tit;
-//        int ncam;
-//        ss >> ncam;
-
-//        imageNumbers.push_back(ncam);
-
-//        for (unsigned int i = 1; i < nCameras_; i++){
-//            std::getline(inputFile, line);
-//            boost::tokenizer<> moreTokens(line);
-//            boost::tokenizer<>::iterator mtit = moreTokens.begin();
-//            mtit++;
-//            std::stringstream nss;
-//            nss << *mtit;
-//            nss >> ncam;
-
-//            imageNumbers.push_back(ncam);
-
-//        }
-
-//        inputFile.close();
-
-
-//    } else {
-//        std::cerr << "Unable to open Bundle file" << std::endl;
-//    }
-
-//    // With this, we are still able to use the numbers if the list does not start in 0 or 1
-//    int min = *std::min_element(imageNumbers.begin(), imageNumbers.end());
-
-//    for (unsigned int i = 0; i < cameraOrder_.size(); i++){
-
-//        const int index = imageNumbers[i]-min;
-//        cameraOrder_[index] = i;
-//    }
-
 }
 
 void PcMesher::exportIndices(PointIndices& _indices, std::string _fileName){
@@ -865,6 +804,20 @@ void PcMesher::exportIndices(PointIndices& _indices, std::string _fileName){
 
 
     outputFile.close();
+}
+
+
+
+void PcMesher::removeOutliersFromCamPerVtx(PointIndices &_indices){
+
+    // Where there is an outlier, we set an empty vector
+    for (unsigned int i = 0; i < _indices.indices.size(); i++){
+        camPerVtx_[_indices.indices[i]].clear();
+    }
+
+    // std::remove efficiently removes every entry where there is an empty vector
+    camPerVtx_.erase(std::remove(camPerVtx_.begin(), camPerVtx_.end(), std::vector<int>(0)), camPerVtx_.end());
+
 }
 
 

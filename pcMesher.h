@@ -81,6 +81,8 @@ public:
 
 private:
 
+    void removeOutliersFromCamPerVtx(PointIndices& _indices);
+
     std::vector<PointCloud<PointXYZRGBNormalCam>::Ptr > pointClouds_;
     unsigned int nClouds_;
 

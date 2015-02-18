@@ -38,10 +38,10 @@ public:
     void fixAllNormals();
 
     // Plane segmentation
-    void planeSegmentation();
+    void segmentPlanes();
 
     // Cilinder segmentation
-    void cylinderSegmentation();
+    void segmentCylinders();
 
     // Surface reconstruction
     void surfaceReconstruction(const unsigned int _index);
@@ -54,7 +54,7 @@ public:
     PolygonMesh deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh _inputMesh);
     PolygonMesh decimateMesh(const PolygonMesh& _mesh);
 
-    // Adding every camera to the cloud to see if it works
+    // Adding every camera to the cloud to see if their position is correct
     void drawCameras();
 
     // Export a txt file with the camera setup information for the multi-texturing process
@@ -75,6 +75,8 @@ public:
 //    void nvmCameraReader(std::string _fileName);
     void readImageList(std::string _fileName);
 
+    void exportIndices (PointIndices& _indices, std::string _fileName);
+
 private:
 
     std::vector<PointCloud<PointXYZRGBNormalCam>::Ptr > pointClouds_;
@@ -83,8 +85,9 @@ private:
     std::vector<Camera> cameras_;
     unsigned int nCameras_;
 
-//    std::vector<unsigned int> cameraOrder_;
     std::vector<std::string> imageList_;
+
+    std::vector<std::vector<int> > camPerVtx_;
 
 };
 

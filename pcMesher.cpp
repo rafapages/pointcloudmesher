@@ -29,6 +29,11 @@ PcMesher::PcMesher(){
     pointClouds_.clear();
     nClouds_ = 0;
 
+    cameras_.clear();
+    nCameras_ = 0;
+
+    imageList_.clear();
+    camPerVtx_.clear();
 }
 
 PcMesher::~PcMesher(){
@@ -142,7 +147,7 @@ void PcMesher::fixAllNormals(){
     }
 }
 
-void PcMesher::planeSegmentation(){
+void PcMesher::segmentPlanes(){
 
     std::cerr << "Segmenting planes..." << std::endl;
 
@@ -150,33 +155,30 @@ void PcMesher::planeSegmentation(){
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud_p (new PointCloud<PointXYZRGBNormalCam>);
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud_f (new PointCloud<PointXYZRGBNormalCam>);
 
-
     ModelCoefficients::Ptr coefficients (new ModelCoefficients ());
     PointIndices::Ptr inliers (new PointIndices ());
+    PointIndices lastOutliers;
+
     // Create the segmentation object
     SACSegmentation<PointXYZRGBNormalCam> seg;
-    // Optional
     seg.setOptimizeCoefficients (true);
-    // Mandatory
     seg.setModelType (SACMODEL_PLANE);
     seg.setMethodType (SAC_RANSAC);
     seg.setMaxIterations (1000);
-//    seg.setDistanceThreshold (0.01);
-    seg.setDistanceThreshold(0.05);
+    seg.setDistanceThreshold(0.01);
 
 
     // Create the filtering object
-    ExtractIndices<PointXYZRGBNormalCam> extract;
+    ExtractIndices<PointXYZRGBNormalCam> extract(true); // set to true to be able to extract the outliers also
 
     int i = 0, nr_points = (int) cloud->points.size ();
     // While 5% of the original cloud is still there
-    while (cloud->points.size () > 0.05 * nr_points)
+    while (cloud->points.size () > 0.01 * nr_points)
     {
         // Segment the largest planar component from the remaining cloud
         seg.setInputCloud (cloud);
         seg.segment (*inliers, *coefficients);
-        if (inliers->indices.size () == 0)
-        {
+        if (inliers->indices.size () == 0){
             std::cerr << "Could not estimate a planar model for the given dataset." << std::endl;
             break;
         }
@@ -186,13 +188,23 @@ void PcMesher::planeSegmentation(){
         extract.setIndices (inliers);
         extract.setNegative (false);
         extract.filter (*cloud_p);
-        std::cerr << "PointCloud representing the planar component: " << cloud_p->width * cloud_p->height << " data points." << i << std::endl;
+
+        // Indices to outliers
+//        extract.getRemovedIndices(lastOutliers);
+
+        std::cerr << "PointCloud #" << i+1 << " representing the planar component: " << cloud_p->width * cloud_p->height << " data points. Points reimaning: " << lastOutliers.indices.size() << std::endl;
 
         // We create a pointer to a copy of the plane cloud to be able to store properly
         PointCloud<PointXYZRGBNormalCam>::Ptr plane_cloud = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(*cloud_p);
 
         pointClouds_.push_back(plane_cloud);
         nClouds_++;
+
+        // Write plane in ply file
+        std::stringstream ss;
+        ss << "out_" << i+1 << ".ply";
+        std::cerr << "PointCloud #" << i+1 << " exported." <<
+        io::savePLYFile(ss.str(), *plane_cloud);
 
         // Create the filtering object
         extract.setNegative (true);
@@ -201,9 +213,14 @@ void PcMesher::planeSegmentation(){
         i++;
     }
 
+
+    io::savePLYFile("outliers.ply", *pointClouds_[0]);
+//    exportIndices(lastOutliers, "outliers.txt");
+
 }
 
-void PcMesher::cylinderSegmentation(){
+
+void PcMesher::segmentCylinders(){
 
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[0];
 //    PointCloud<Normal>::Ptr normal_cloud (new PointCloud<Normal>);
@@ -357,7 +374,7 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
                         }
                     }
 
-                    radius = sum_distance / static_cast<float>(K) * 5.0f; // 3.0f
+                    radius = sum_distance / static_cast<float>(K) * 7.0f; // 3.0f
                 }
             }
 
@@ -819,94 +836,19 @@ void PcMesher::readImageList(std::string _fileName){
 
 }
 
+void PcMesher::exportIndices(PointIndices& _indices, std::string _fileName){
 
+    std::cerr << "Exporting a txt file with points not included in any plane" << std::endl;
 
-int main (int argc, char *argv[]){
+    std::ofstream outputFile(_fileName);
 
-    if (argc != 3){
-        std::cerr << "Wrong number of input paremeters" << std::endl;
-        return 0;
+    for (unsigned int i = 0; i < _indices.indices.size(); i++){
+        outputFile << _indices.indices[i] << "\n";
     }
 
-    PcMesher cloud;
 
-    // Reading input parameteres: blunder file and image list
-    cloud.bundlerReader(argv[1]);
-    cloud.readImageList(argv[2]);
-    cloud.writeCameraSetupFile("newversioncameras.txt");
-
-
-    cloud.writeMesh("input.ply");
-
-    cloud.removeAllOutliers();
-//    cloud.removeAllOutliers();
-    cloud.writeMesh("sinoutliers.ply");
-
-//    cloud.cylinderSegmentation();
-
-    cloud.planeSegmentation();
-    cloud.estimateAllNormals();
-    cloud.fixAllNormals();
-
-
-    for (unsigned int i = 0; i < cloud.getNClouds(); i++){
-
-        std::stringstream ss;
-        ss << "out_" << i << ".ply";
-        cloud.writeOneMesh(i, ss.str());
-
-    }
-
-    //--- I collect the pointclouds that are planes into one single pointcloud
-    std::vector<PointCloud<PointXYZRGBNormalCam>::Ptr> pointclouds;
-    for (unsigned int i = 1; i < cloud.getNClouds(); i++){
-        pointclouds.push_back(cloud.getPointCloudPtr(i));
-    }
-    //---
-
-
-    PointCloud<PointXYZRGBNormalCam> combinedCloud = cloud.combinePointClouds(pointclouds);
-    PointCloud<PointXYZRGBNormalCam>::Ptr combinedCloudPtr = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(combinedCloud);
-    io::savePLYFile("combined_planes.ply", combinedCloud);
-
-
-    PolygonMesh first_mesh = cloud.surfaceReconstruction(combinedCloudPtr);
-    io::savePLYFile("poisson.ply", first_mesh);
-
-    PolygonMesh m = cloud.deleteWrongVertices(combinedCloudPtr, first_mesh);
-//    PolygonMesh simpleM = cloud.decimateMesh(m);
-
-    io::savePLYFile("poisson_limpio.ply", m);
-//    io::savePLYFile("limpio_decimated.ply", simpleM);
-
-
-//    cloud.drawCameras();
-
-    cloud.writeMesh("output.ply");
-
-    return 0;
-
-//    //------------------------------------------------------------------------
-//    // Just Poisson
-//    //------------------------------------------------------------------------
-
-//    if (argc != 2){
-//        std::cerr << "Wrong number of input paremeters" << std::endl;
-//        return 0;
-//    }
-
-//    PcMesher cloud;
-
-//    // Reading input parameteres: blunder file and image list
-//    cloud.readMesh(argv[1]);
-
-//    PolygonMesh first_mesh = cloud.surfaceReconstruction(cloud.getPointCloudPtr(0));
-//    io::savePLYFile("poisson_v2.ply", first_mesh);
-
-//    PolygonMesh m = cloud.deleteWrongVertices(cloud.getPointCloudPtr(0), first_mesh);
-
-//    io::savePLYFile("poisson_limpio_v2.ply", m);
-
-//    return 0;
-
+    outputFile.close();
 }
+
+
+

@@ -44,6 +44,10 @@ unsigned int PcMesher::getNClouds(){
     return nClouds_;
 }
 
+std::vector<std::vector<int> > PcMesher::getCamPerVtx(){
+    return camPerVtx_;
+}
+
 PointCloud<PointXYZRGBNormalCam>::Ptr PcMesher::getPointCloudPtr(unsigned int _index){
     return pointClouds_[_index];
 }
@@ -64,12 +68,18 @@ void PcMesher::removeOutliers(unsigned int _index){
     std::cerr << "Removing outliers of pointcloud " << _index + 1 << "/" << nClouds_ << std::endl;
 
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[_index];
+    PointIndices outliers;
 
-    StatisticalOutlierRemoval<PointXYZRGBNormalCam> sor;
+    StatisticalOutlierRemoval<PointXYZRGBNormalCam> sor(true); // Setting this to true we are able to extract indices of deleted points
     sor.setInputCloud(cloud);
     sor.setMeanK(50);
     sor.setStddevMulThresh(1.0);
     sor.filter(*cloud);
+
+    // Indices to outliers
+    sor.getRemovedIndices(outliers);
+
+    // TODAVÍA HAY QUE FILTRAR LA LISTA DE CORRESPONDENCIAS!!!!
 
 }
 
@@ -631,9 +641,8 @@ void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_
 
         // This line has the position of the point
         if (point_line == 0){
-            unsigned int index = 0;
             float xyz[3];
-            for (; ptit  != point_tokens.end(); ++ptit, index++){
+            for (unsigned int index = 0; ptit  != point_tokens.end(); ++ptit, index++){
                 float value;
                 ss << *ptit;
                 ss >> value;
@@ -647,9 +656,8 @@ void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_
         }
         // This line has the color of the point
         else if (point_line == 1){
-            unsigned int index = 0;
             unsigned char rgb[3];
-            for (; ptit != point_tokens.end(); ++ptit, index++){
+            for (unsigned int index = 0; ptit != point_tokens.end(); ++ptit, index++){
                 float value;
                 ss << *ptit;
                 ss >> value;
@@ -671,16 +679,25 @@ void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_
             ss.clear();
             ++ptit;
 
+            std::vector<int> cam2vtx;
+
             if (nCam > 0){
-                int cam_value;
-                ss << *ptit;
-                ss >> cam_value;
-                ss.str(std::string());
-                ss.clear();
-                _point.camera = cam_value;
+                for (unsigned int index = 0; ptit != point_tokens.end(); ++ptit, index++){
+                    if (index%4 != 0) continue; // every four values we have the number of the camera, we don't care about the other values.
+                    int cam_value;
+                    ss << *ptit;
+                    ss >> cam_value;
+                    ss.str(std::string());
+                    ss.clear();
+                    if (index == 0){
+                        _point.camera = cam_value;
+                    }
+                    cam2vtx.push_back(cam_value);
+                }
             } else {
                 _point.camera = -1;
             }
+            camPerVtx_.push_back(cam2vtx);
         }
     }
 }

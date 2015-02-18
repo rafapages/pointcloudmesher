@@ -19,6 +19,21 @@ int main (int argc, char *argv[]){
     cloud.readImageList(argv[2]);
     cloud.writeCameraSetupFile("newversioncameras.txt");
 
+//    // TEST
+//    std::vector<std::vector<int> > c2v = cloud.getCamPerVtx();
+//    PointCloud<PointXYZRGBNormalCam>::Ptr testpcptr = cloud.getPointCloudPtr(0);
+//    PointCloud<PointXYZRGBNormalCam> testpc = *testpcptr;
+//    std::cerr << "Number of points (camPerVtx) : " << c2v.size() << std::endl;
+//    std::cerr << "Number of points (PointCloud): " << testpc.height * testpc.width << std::endl;
+//    for (unsigned int i = 0; i < c2v.size(); i++){
+//        const std::vector<int> current = c2v[i];
+//        for (unsigned int j = 0; j < current.size(); j++){
+//            std::cerr << current[j] << " ";
+//        }
+//        std::cerr << "\n";
+//    }
+
+//    //
 
     cloud.writeMesh("input.ply");
 

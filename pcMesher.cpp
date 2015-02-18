@@ -629,8 +629,6 @@ void PcMesher::asignCam2Mesh(const PolygonMesh &_mesh, const PointCloud<PointXYZ
     fromPCLPointCloud2(_mesh.cloud, meshCloud);
     int nVtx = meshCloud.height * meshCloud.width;
 
-    std::vector<std::vector<int> > meshCloudCorrespondance(nVtx);
-
     // for each vertex of the mesh
     for (unsigned int v = 0; v < nVtx; v++){
 
@@ -640,20 +638,13 @@ void PcMesher::asignCam2Mesh(const PolygonMesh &_mesh, const PointCloud<PointXYZ
 
         if (kdtree.nearestKSearch(searchPoint, 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0){
             for (size_t i = 0; i < pointIdxNKNSearch.size(); ++i){ // This is stupid, it's just one iteration
-                meshCloudCorrespondance[v] = camPerVtx_[pointIdxNKNSearch[i]];
+                std::vector<int> current = camPerVtx_[pointIdxNKNSearch[i]];
+                for (unsigned int j = 0; j < current.size(); j++){
+                    outputFile << current[j] << " ";
+                }
+                outputFile << "\n";
             }
         }
-    }
-
-    // Exporting the file...
-    for (unsigned int i = 0; i < nVtx; i++){
-        std::cerr << meshCloud.points[i].x << " " << meshCloud.points[i].y << " " << meshCloud.points[i].z << std::endl;
-        std::vector<int> current = meshCloudCorrespondance[i];
-        for (unsigned int j = 0; j < current.size(); j++){
-            outputFile << current[j] << " ";
-        }
-        outputFile << "\n";
-
     }
 
     outputFile.close();

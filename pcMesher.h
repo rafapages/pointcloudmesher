@@ -78,6 +78,7 @@ public:
     void readImageList(std::string _fileName);
 
     void exportIndices (PointIndices& _indices, std::string _fileName);
+    void exportCamPerVtx (std::string _fileName);
 
 private:
 

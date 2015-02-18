@@ -807,6 +807,21 @@ void PcMesher::exportIndices(PointIndices& _indices, std::string _fileName){
 }
 
 
+void PcMesher::exportCamPerVtx(std::string _fileName){
+
+    std::ofstream outputFile(_fileName);
+
+    for (unsigned int i = 0; i < camPerVtx_.size(); i++){
+        const std::vector<int> current = camPerVtx_[i];
+        for (unsigned int j = 0; j < current.size(); j++){
+            outputFile << current[j] << " ";
+        }
+        outputFile << "\n";
+    }
+
+}
+
+
 
 void PcMesher::removeOutliersFromCamPerVtx(PointIndices &_indices){
 

@@ -39,7 +39,7 @@ int main (int argc, char *argv[]){
 //        //
 
     cloud.writeMesh("sinoutliers.ply");
-
+    cloud.exportCamPerVtx("camPerVtx.txt");
 
     cloud.segmentPlanes();
     cloud.estimateAllNormals();

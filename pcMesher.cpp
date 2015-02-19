@@ -182,7 +182,7 @@ void PcMesher::segmentPlanes(){
 
     int i = 0, nr_points = (int) cloud->points.size ();
     // While 5% of the original cloud is still there
-    while (cloud->points.size () > 0.01 * nr_points)
+    while (cloud->points.size () > 0.05 * nr_points) // 0.01
     {
         // Segment the largest planar component from the remaining cloud
         seg.setInputCloud (cloud);
@@ -432,8 +432,8 @@ PolygonMesh PcMesher::decimateMesh(const PolygonMesh& _mesh){
 
     PolygonMesh outputMesh;
     MeshQuadricDecimationVTK decimator;
-    decimator.setTargetReductionFactor(0.5);
     decimator.setInputMesh(meshPtr);
+    decimator.setTargetReductionFactor(0.99f);
     decimator.process(outputMesh);
 
     return outputMesh;
@@ -557,7 +557,7 @@ void PcMesher::getImageDimensions(std::string _imageName, unsigned int &_height,
     _height = input.getHeight();
     _width = input.getWidth();
 
-    std::cerr << "+" << _imageName << ": " << _width << " " << _height << std::endl;
+//    std::cerr << "+" << _imageName << ": " << _width << " " << _height << std::endl;
 
 
 }
@@ -617,7 +617,7 @@ PointCloud<PointXYZRGBNormalCam> PcMesher::combinePointClouds(std::vector<PointC
 
 }
 
-void PcMesher::asignCam2Mesh(const PolygonMesh &_mesh, const PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, const std::string _fileName){
+void PcMesher::assignCam2Mesh(const PolygonMesh &_mesh, const PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, const std::string _fileName){
 
     std::ofstream outputFile(_fileName);
 
@@ -738,7 +738,7 @@ void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_
 
 void PcMesher::bundlerReader(const std::string _fileName){
 
-    std::cerr << "Reading Bundler file" << std::endl;
+    std::cerr << "Reading Bundler file... ";
 
     std::ifstream inputFile(_fileName);
     std::string line;
@@ -793,6 +793,9 @@ void PcMesher::bundlerReader(const std::string _fileName){
         nClouds_++;
 
         inputFile.close();
+
+        std::cerr << "done!: " << nPoints << " points read." << std::endl;
+
 
     } else {
         std::cerr << "Unable to open Bundle file" << std::endl;

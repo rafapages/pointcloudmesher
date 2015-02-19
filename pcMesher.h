@@ -69,7 +69,7 @@ public:
     PointCloud<PointXYZRGBNormalCam> combinePointClouds(std::vector<PointCloud<PointXYZRGBNormalCam>::Ptr > _pointclouds);
 
     // Asign cameras to mesh and export a file with it
-    void asignCam2Mesh(const PolygonMesh& _mesh, const PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, const std::string _fileName);
+    void assignCam2Mesh(const PolygonMesh& _mesh, const PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, const std::string _fileName);
 
     // I/O functions
     void bundlerPointReader(PointXYZRGBNormalCam& _point, std::ifstream& _stream);

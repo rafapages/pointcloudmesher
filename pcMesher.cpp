@@ -205,22 +205,53 @@ void PcMesher::segmentPlanes(){
     seg.setModelType (SACMODEL_PLANE);
     seg.setMethodType (SAC_RANSAC);
     seg.setMaxIterations (1000);
-    seg.setDistanceThreshold(0.1);
+//    seg.setDistanceThreshold(0.1);
+    seg.setDistanceThreshold(0.03);
 
 
     // Create the filtering object
     ExtractIndices<PointXYZRGBNormalCam> extract(true); // set to true to be able to extract the outliers also
 
-    int i = 0, nr_points = (int) cloud->points.size ();
+    int i = 0;
+    const int nr_points = (int) cloud->points.size ();
+    // To avoid an infinite loop
+    const int max_iter = 10;
+    int iter = 0;
     // While 5% of the original cloud is still there
     while (cloud->points.size () > 0.05 * nr_points) // 0.01
     {
+        if (iter == max_iter) break;
+
         // Segment the largest planar component from the remaining cloud
         seg.setInputCloud (cloud);
         seg.segment (*inliers, *coefficients);
         if (inliers->indices.size () == 0){
             std::cerr << "Could not estimate a planar model for the given dataset." << std::endl;
             break;
+        }
+
+        // We get the normal of the estimated plane
+        Eigen::Vector3f planeNormal(coefficients->values[0], coefficients->values[1], coefficients->values[2]);
+
+        // We check if every inlier orientation is the aprox. the same as the plane's
+        for (unsigned int j = 0; j < inliers->indices.size(); j++){
+            PointXYZRGBNormalCam current = cloud->points[inliers->indices[j]];
+            Eigen::Vector3f cur_norm(current.normal_x, current.normal_y, current.normal_z);
+
+            const float cos = planeNormal.dot(cur_norm) / (planeNormal.squaredNorm() * cur_norm.squaredNorm());
+            // vectors with normals in an angle bigger than 45º are marked with -1 in the inlier list
+            if ( fabs(cos) < 0.707){ // >45º
+                inliers->indices[j] = -1;
+            }
+        }
+
+        // inliers marked as -1 are removed from the list
+        inliers->indices.erase(std::remove(inliers->indices.begin(), inliers->indices.end(), -1), inliers->indices.end());
+
+        // if not enough points are left to determine a plane, we move to the following plane
+        if (inliers->indices.size() < 0.02 * nr_points) {
+            iter++;
+            continue;
         }
 
         // Extract the inliers
@@ -251,6 +282,8 @@ void PcMesher::segmentPlanes(){
         extract.filter (*cloud_f);
         cloud.swap (cloud_f);
         i++;
+        // iter is set to 0
+        iter = 0;
     }
 
 

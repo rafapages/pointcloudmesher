@@ -23,11 +23,10 @@ int main (int argc, char *argv[]){
 
     cloud.removeAllOutliers();
 
-    cloud.writeMesh("sinoutliers.ply");
-//    cloud.exportCamPerVtx("camPerVtx.txt");
-
     // We first estimate normals to get an initial orientation
-    cloud.estimateAllNormals(0.03);
+    cloud.estimateAllNormals(0.1);
+    cloud.writeMesh("sinoutliers.ply");
+
     // Planes are segmented also using their normal info
     cloud.segmentPlanes();
     // Normals are estimated properly now (and their sense corrected)

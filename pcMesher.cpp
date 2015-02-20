@@ -249,9 +249,12 @@ void PcMesher::segmentPlanes(){
         inliers->indices.erase(std::remove(inliers->indices.begin(), inliers->indices.end(), -1), inliers->indices.end());
 
         // if not enough points are left to determine a plane, we move to the following plane
+        bool badplane = false;
         if (inliers->indices.size() < 0.02 * nr_points) {
+            std::cerr << iter << std::endl;
+            std::cerr << inliers->indices.size() << std::endl;
             iter++;
-            continue;
+            badplane = true;
         }
 
         // Extract the inliers
@@ -263,27 +266,35 @@ void PcMesher::segmentPlanes(){
         // Indices to outliers
         extract.getRemovedIndices(lastOutliers);
 
-        std::cerr << "PointCloud #" << i+1 << " representing the planar component: " << cloud_p->width * cloud_p->height << " data points. Points reimaning: " << lastOutliers.indices.size() << std::endl;
 
-        // We create a pointer to a copy of the plane cloud to be able to store properly
-        PointCloud<PointXYZRGBNormalCam>::Ptr plane_cloud = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(*cloud_p);
+        if (!badplane){ // If we have a valid plane, we save it
 
-        pointClouds_.push_back(plane_cloud);
-        nClouds_++;
+            std::cerr << "PointCloud #" << i+1 << " representing the planar component: " << cloud_p->width * cloud_p->height << " data points. Points reimaning: " << lastOutliers.indices.size() << std::endl;
 
-        // Write plane in ply file
-        std::stringstream ss;
-        ss << "out_" << i+1 << ".ply";
-        std::cerr << "PointCloud #" << i+1 << " exported." << std::endl;
-        io::savePLYFile(ss.str(), *plane_cloud);
+            // We create a pointer to a copy of the plane cloud to be able to store properly
+            PointCloud<PointXYZRGBNormalCam>::Ptr plane_cloud = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(*cloud_p);
 
-        // Create the filtering object
-        extract.setNegative (true);
-        extract.filter (*cloud_f);
-        cloud.swap (cloud_f);
-        i++;
-        // iter is set to 0
-        iter = 0;
+            pointClouds_.push_back(plane_cloud);
+            nClouds_++;
+
+            // Write plane in ply file
+            std::stringstream ss;
+            ss << "out_" << i+1 << ".ply";
+            std::cerr << "PointCloud #" << i+1 << " exported." << std::endl;
+            io::savePLYFile(ss.str(), *plane_cloud);
+
+            // Create the filtering object
+            extract.setNegative (true);
+            extract.filter (*cloud_f);
+            cloud.swap (cloud_f);
+            i++;
+            // iter is set to 0
+            iter = 0;
+
+        } else { // In this case, the points are rearranged so we have a different result
+            PointCloud<PointXYZRGBNormalCam>::Ptr plane_cloud = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(*cloud_p);
+            *pointClouds_[0] += *plane_cloud;
+        }
     }
 
 

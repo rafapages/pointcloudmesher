@@ -33,7 +33,9 @@ public:
 
     // Estimate the normals of a cloud and store them
     void estimateNormals(const unsigned int _index);
+    void estimateNormals(const unsigned int _index, const float _radius);
     void estimateAllNormals();
+    void estimateAllNormals(const float _radius);
 
     // Fix the normal orientation using the camera position
     void fixNormal(const unsigned int _index);

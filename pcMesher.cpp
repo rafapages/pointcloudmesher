@@ -108,9 +108,31 @@ void PcMesher::estimateNormals(const unsigned int _index){
     ne.setSearchMethod (tree);
 
     // Use all neighbors in a sphere of radius 3cm
-//    ne.setRadiusSearch (1.03); // <--------------------- IT'S IMPORTANT TO DETERMINE THIS NUMBER PROPERLY
     ne.setRadiusSearch (0.3); // <--------------------- IT'S IMPORTANT TO DETERMINE THIS NUMBER PROPERLY
 
+
+    // Compute the features
+    ne.compute (*cloud);
+
+}
+
+void PcMesher::estimateNormals(const unsigned int _index, const float _radius){
+
+    std::cerr << "Estimating normals of pointcloud " << _index + 1 << "/" << nClouds_ << std::endl;
+
+    // Create the normal estimation class, and pass the input dataset to it
+    PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[_index];
+    NormalEstimation<PointXYZRGBNormalCam, PointXYZRGBNormalCam> ne;
+
+    ne.setInputCloud(cloud);
+
+    // Create an empty kdtree representation, and pass it to the normal estimation object.
+    // Its content will be filled inside the object, based on the given input dataset (as no other search surface is given).
+    search::KdTree<PointXYZRGBNormalCam>::Ptr tree (new search::KdTree<PointXYZRGBNormalCam> ());
+    ne.setSearchMethod (tree);
+
+    // Use all neighbors in a sphere of radius 3cm
+    ne.setRadiusSearch (_radius);
 
     // Compute the features
     ne.compute (*cloud);
@@ -123,6 +145,15 @@ void PcMesher::estimateAllNormals(){
     for (unsigned int i = 0; i < pointClouds_.size(); i++){
 
         estimateNormals(i);
+
+    }
+}
+
+void PcMesher::estimateAllNormals(const float _radius){
+
+    for (unsigned int i = 0; i < pointClouds_.size(); i++){
+
+        estimateNormals(i, _radius);
 
     }
 }

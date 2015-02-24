@@ -554,7 +554,7 @@ void PcMesher::writeCameraSetupFile(std::string _fileName, const int _width, con
 
     std::cerr << "Writing camera setup file" << std::endl;
 
-    std::ofstream outputFile(_fileName);
+    std::ofstream outputFile(_fileName.c_str());
 
     outputFile << cameras_.size() << " " << _width << " " << _height << "\n";
 
@@ -595,7 +595,7 @@ void PcMesher::writeCameraSetupFile(std::string _fileName){
 
     std::cerr << "Writing camera setup file" << std::endl;
 
-    std::ofstream outputFile(_fileName);
+    std::ofstream outputFile(_fileName.c_str());
 
     outputFile << cameras_.size() << "\n";
 
@@ -707,7 +707,7 @@ PointCloud<PointXYZRGBNormalCam> PcMesher::combinePointClouds(std::vector<PointC
 
 void PcMesher::assignCam2Mesh(const PolygonMesh &_mesh, const PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, const std::string _fileName){
 
-    std::ofstream outputFile(_fileName);
+  std::ofstream outputFile(_fileName.c_str());
 
     KdTreeFLANN<PointXYZRGBNormalCam> kdtree;
     kdtree.setInputCloud(_cloud);
@@ -828,7 +828,7 @@ void PcMesher::bundlerReader(const std::string _fileName){
 
     std::cerr << "Reading Bundler file... ";
 
-    std::ifstream inputFile(_fileName);
+    std::ifstream inputFile(_fileName.c_str());
     std::string line;
 
     int nPoints = 0;
@@ -897,7 +897,7 @@ void PcMesher::readImageList(const std::string _fileName){
 
     imageList_.clear();
 
-    std::ifstream inputFile(_fileName);
+    std::ifstream inputFile(_fileName.c_str());
     std::string line;
 
     if (inputFile.is_open()){
@@ -921,7 +921,7 @@ void PcMesher::exportIndices(PointIndices& _indices, const std::string _fileName
 
     std::cerr << "Exporting a txt file with points not included in any plane" << std::endl;
 
-    std::ofstream outputFile(_fileName);
+    std::ofstream outputFile(_fileName.c_str());
 
     for (unsigned int i = 0; i < _indices.indices.size(); i++){
         outputFile << _indices.indices[i] << "\n";
@@ -934,7 +934,7 @@ void PcMesher::exportIndices(PointIndices& _indices, const std::string _fileName
 
 void PcMesher::exportCamPerVtx(const std::string _fileName){
 
-    std::ofstream outputFile(_fileName);
+  std::ofstream outputFile(_fileName.c_str());
 
     for (unsigned int i = 0; i < camPerVtx_.size(); i++){
         const std::vector<int> current = camPerVtx_[i];

@@ -2,7 +2,7 @@
 
 #include <pcl/io/ply_io.h>
 #include <pcl/io/pcd_io.h>
-
+#include <boost/make_shared.hpp>
 
 int main (int argc, char *argv[]){
 

@@ -189,15 +189,17 @@ void PcMesher::fixAllNormals(){
 
 void PcMesher::segmentPlanes(){
 
-    std::cerr << "Segmenting planes..." << std::endl;
+    std::cerr << "Segmenting planes" << std::endl;
 
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[0];
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud_p (new PointCloud<PointXYZRGBNormalCam>);
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud_f (new PointCloud<PointXYZRGBNormalCam>);
+    PointCloud<PointXYZRGBNormalCam>::Ptr tempPlaneCloud (new PointCloud<PointXYZRGBNormalCam>);
+    PointCloud<PointXYZRGBNormalCam>::Ptr emptyCloud (new PointCloud<PointXYZRGBNormalCam>);
 
     ModelCoefficients::Ptr coefficients (new ModelCoefficients ());
     PointIndices::Ptr inliers (new PointIndices ());
-    PointIndices lastOutliers;
+//    PointIndices lastOutliers;
 
     // Create the segmentation object
     SACSegmentation<PointXYZRGBNormalCam> seg;
@@ -233,8 +235,9 @@ void PcMesher::segmentPlanes(){
         // We get the normal of the estimated plane
         Eigen::Vector3f planeNormal(coefficients->values[0], coefficients->values[1], coefficients->values[2]);
 
+        const int inliersOrignalSize = inliers->indices.size();
         // We check if every inlier orientation is the aprox. the same as the plane's
-        for (unsigned int j = 0; j < inliers->indices.size(); j++){
+        for (unsigned int j = 0; j < inliersOrignalSize; j++){
             PointXYZRGBNormalCam current = cloud->points[inliers->indices[j]];
             Eigen::Vector3f cur_norm(current.normal_x, current.normal_y, current.normal_z);
 
@@ -250,9 +253,9 @@ void PcMesher::segmentPlanes(){
 
         // if not enough points are left to determine a plane, we move to the following plane
         bool badplane = false;
-        if (inliers->indices.size() < 0.02 * nr_points) {
+        if (inliers->indices.size() < 0.008 * nr_points) {
             std::cerr << iter << std::endl;
-            std::cerr << inliers->indices.size() << std::endl;
+            std::cerr << inliers->indices.size() << "/" << inliersOrignalSize << std::endl;
             iter++;
             badplane = true;
         }
@@ -264,12 +267,9 @@ void PcMesher::segmentPlanes(){
         extract.filter (*cloud_p);
 
         // Indices to outliers
-        extract.getRemovedIndices(lastOutliers);
-
+//        extract.getRemovedIndices(lastOutliers);
 
         if (!badplane){ // If we have a valid plane, we save it
-
-            std::cerr << "PointCloud #" << i+1 << " representing the planar component: " << cloud_p->width * cloud_p->height << " data points. Points reimaning: " << lastOutliers.indices.size() << std::endl;
 
             // We create a pointer to a copy of the plane cloud to be able to store properly
             PointCloud<PointXYZRGBNormalCam>::Ptr plane_cloud = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(*cloud_p);
@@ -277,29 +277,42 @@ void PcMesher::segmentPlanes(){
             pointClouds_.push_back(plane_cloud);
             nClouds_++;
 
+            // Create the filtering object
+            extract.setNegative (true);
+            extract.filter (*cloud_f);
+            cloud.swap (cloud_f);
+
+            *pointClouds_[0] += *tempPlaneCloud;
+            tempPlaneCloud = emptyCloud; // To clear the content of temPlaneCloud
+
+            std::cerr << "PointCloud #" << i+1 << " representing the planar component: " << cloud_p->width * cloud_p->height << " data points. ";
+            std::cerr << "Points reimaning: " << cloud->width * cloud->height << std::endl;
+
+
             // Write plane in ply file
             std::stringstream ss;
             ss << "out_" << i+1 << ".ply";
             std::cerr << "PointCloud #" << i+1 << " exported." << std::endl;
             io::savePLYFile(ss.str(), *plane_cloud);
 
-            // Create the filtering object
-            extract.setNegative (true);
-            extract.filter (*cloud_f);
-            cloud.swap (cloud_f);
             i++;
-            // iter is set to 0
             iter = 0;
 
         } else { // In this case, the points are rearranged so we have a different result
-            PointCloud<PointXYZRGBNormalCam>::Ptr plane_cloud = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(*cloud_p);
-            *pointClouds_[0] += *plane_cloud;
+
+            extract.setNegative (true);
+            extract.filter (*cloud_f);
+            cloud.swap (cloud_f);
+
+            *pointClouds_[0] += *tempPlaneCloud;
+            tempPlaneCloud = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(*cloud_p);
+
         }
+
     }
 
-
+    std::cerr << "Exporting non-planar points" << std::endl;
     io::savePLYFile("outliers.ply", *pointClouds_[0]);
-//    exportIndices(lastOutliers, "outliers.txt");
 
 }
 
@@ -458,7 +471,7 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
                         }
                     }
 
-                    radius = sum_distance / static_cast<float>(K) * 7.0f; // 3.0f
+                    radius = sum_distance / static_cast<float>(K) * 3.0f; // 3.0f
                 }
             }
 

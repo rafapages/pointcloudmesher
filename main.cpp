@@ -39,9 +39,6 @@ int main (int argc, char *argv[]){
         pointclouds.push_back(cloud.getPointCloudPtr(i));
     }
 
-    cloud.writeOneMesh(0, "non-planar_points.ply");
-
-
     PointCloud<PointXYZRGBNormalCam> combinedCloud = cloud.combinePointClouds(pointclouds);
     PointCloud<PointXYZRGBNormalCam>::Ptr combinedCloudPtr = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(combinedCloud);
     io::savePLYFile("combined_planes.ply", combinedCloud);
@@ -54,7 +51,7 @@ int main (int argc, char *argv[]){
     PolygonMesh simpleM = cloud.decimateMesh(m);
 
     io::savePLYFile("poisson_limpio.ply", m);
-    io::savePLYFile("limpio_decimated.ply", simpleM);
+    io::savePLYFile("poisson_limpio_decimated.ply", simpleM);
 
     cloud.assignCam2Mesh(m, combinedCloudPtr, "meshcamera.txt");
 

@@ -254,7 +254,7 @@ void PcMesher::segmentPlanes(){
 
         // if not enough points are left to determine a plane, we move to the following plane
         bool badplane = false;
-        if (inliers->indices.size() < 0.008 * nr_points) {
+        if (inliers->indices.size() < 0.01 * nr_points) {
             std::cerr << iter << std::endl;
             std::cerr << inliers->indices.size() << "/" << inliersOrignalSize << std::endl;
             iter++;
@@ -522,7 +522,7 @@ PolygonMesh PcMesher::decimateMesh(const PolygonMesh& _mesh){
     PolygonMesh outputMesh;
     MeshQuadricDecimationVTK decimator;
     decimator.setInputMesh(meshPtr);
-    decimator.setTargetReductionFactor(0.99f);
+    decimator.setTargetReductionFactor(0.9f);
     decimator.process(outputMesh);
 
     return outputMesh;

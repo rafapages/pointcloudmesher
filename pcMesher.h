@@ -20,6 +20,9 @@ public:
     // Get number of clouds
     unsigned int getNClouds();
 
+    // Get the vector of point-camera correspondance
+    std::vector<std::vector<int> > getCamPerVtx();
+
     // Get a Ptr to a cloud
     PointCloud<PointXYZRGBNormalCam>::Ptr getPointCloudPtr(unsigned int _index);
 
@@ -28,10 +31,11 @@ public:
     void removeOutliers(unsigned int _index);
     void removeAllOutliers();
 
-
     // Estimate the normals of a cloud and store them
     void estimateNormals(const unsigned int _index);
+    void estimateNormals(const unsigned int _index, const float _radius);
     void estimateAllNormals();
+    void estimateAllNormals(const float _radius);
 
     // Fix the normal orientation using the camera position
     void fixNormal(const unsigned int _index);
@@ -66,18 +70,26 @@ public:
     PointCloud<PointXYZRGBNormalCam> combinePointClouds();
     PointCloud<PointXYZRGBNormalCam> combinePointClouds(std::vector<PointCloud<PointXYZRGBNormalCam>::Ptr > _pointclouds);
 
+    // Asign cameras to mesh and export a file with it
+    void assignCam2Mesh(const PolygonMesh& _mesh, const PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, const std::string _fileName);
+
     // I/O functions
     void bundlerPointReader(PointXYZRGBNormalCam& _point, std::ifstream& _stream);
-    void readMesh(std::string _fileName);
-    void writeOneMesh(const unsigned int _index, std::string _fileName);
-    void writeMesh(std::string _fileName);
-    void bundlerReader(std::string _fileName);
-//    void nvmCameraReader(std::string _fileName);
-    void readImageList(std::string _fileName);
+    void readCloud(const std::string _fileName);
+    void writeOneCloud(const unsigned int _index, const std::string _fileName);
+    void writeCloud(const std::string _fileName);
+    void bundlerReader(const std::string _fileName);
+    void readImageList(const std::string _fileName);
 
-    void exportIndices (PointIndices& _indices, std::string _fileName);
+    void readPLYMesh(const std::string _fileName, PolygonMesh& _mesh);
+    void readOBJMesh(const std::string _fileName, PolygonMesh& _mesh);
+
+    void exportIndices (PointIndices& _indices, const std::string _fileName);
+    void exportCamPerVtx (const std::string _fileName);
 
 private:
+
+    void removeOutliersFromCamPerVtx(PointIndices& _indices);
 
     std::vector<PointCloud<PointXYZRGBNormalCam>::Ptr > pointClouds_;
     unsigned int nClouds_;

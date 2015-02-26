@@ -2,6 +2,7 @@
 
 #include <pcl/io/ply_io.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/io/vtk_lib_io.h>
 
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/features/normal_3d.h>
@@ -44,6 +45,10 @@ unsigned int PcMesher::getNClouds(){
     return nClouds_;
 }
 
+std::vector<std::vector<int> > PcMesher::getCamPerVtx(){
+    return camPerVtx_;
+}
+
 PointCloud<PointXYZRGBNormalCam>::Ptr PcMesher::getPointCloudPtr(unsigned int _index){
     return pointClouds_[_index];
 }
@@ -64,12 +69,17 @@ void PcMesher::removeOutliers(unsigned int _index){
     std::cerr << "Removing outliers of pointcloud " << _index + 1 << "/" << nClouds_ << std::endl;
 
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[_index];
+    PointIndices outliers;
 
-    StatisticalOutlierRemoval<PointXYZRGBNormalCam> sor;
+    StatisticalOutlierRemoval<PointXYZRGBNormalCam> sor(true); // Setting this to true we are able to extract indices of deleted points
     sor.setInputCloud(cloud);
     sor.setMeanK(50);
     sor.setStddevMulThresh(1.0);
     sor.filter(*cloud);
+
+    // Indices to outliers
+    sor.getRemovedIndices(outliers);
+    removeOutliersFromCamPerVtx(outliers);
 
 }
 
@@ -99,9 +109,31 @@ void PcMesher::estimateNormals(const unsigned int _index){
     ne.setSearchMethod (tree);
 
     // Use all neighbors in a sphere of radius 3cm
-//    ne.setRadiusSearch (1.03); // <--------------------- IT'S IMPORTANT TO DETERMINE THIS NUMBER PROPERLY
     ne.setRadiusSearch (0.3); // <--------------------- IT'S IMPORTANT TO DETERMINE THIS NUMBER PROPERLY
 
+
+    // Compute the features
+    ne.compute (*cloud);
+
+}
+
+void PcMesher::estimateNormals(const unsigned int _index, const float _radius){
+
+    std::cerr << "Estimating normals of pointcloud " << _index + 1 << "/" << nClouds_ << std::endl;
+
+    // Create the normal estimation class, and pass the input dataset to it
+    PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[_index];
+    NormalEstimation<PointXYZRGBNormalCam, PointXYZRGBNormalCam> ne;
+
+    ne.setInputCloud(cloud);
+
+    // Create an empty kdtree representation, and pass it to the normal estimation object.
+    // Its content will be filled inside the object, based on the given input dataset (as no other search surface is given).
+    search::KdTree<PointXYZRGBNormalCam>::Ptr tree (new search::KdTree<PointXYZRGBNormalCam> ());
+    ne.setSearchMethod (tree);
+
+    // Use all neighbors in a sphere of radius 3cm
+    ne.setRadiusSearch (_radius);
 
     // Compute the features
     ne.compute (*cloud);
@@ -114,6 +146,15 @@ void PcMesher::estimateAllNormals(){
     for (unsigned int i = 0; i < pointClouds_.size(); i++){
 
         estimateNormals(i);
+
+    }
+}
+
+void PcMesher::estimateAllNormals(const float _radius){
+
+    for (unsigned int i = 0; i < pointClouds_.size(); i++){
+
+        estimateNormals(i, _radius);
 
     }
 }
@@ -149,15 +190,17 @@ void PcMesher::fixAllNormals(){
 
 void PcMesher::segmentPlanes(){
 
-    std::cerr << "Segmenting planes..." << std::endl;
+    std::cerr << "Segmenting planes" << std::endl;
 
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[0];
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud_p (new PointCloud<PointXYZRGBNormalCam>);
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud_f (new PointCloud<PointXYZRGBNormalCam>);
+    PointCloud<PointXYZRGBNormalCam>::Ptr tempPlaneCloud (new PointCloud<PointXYZRGBNormalCam>);
+    PointCloud<PointXYZRGBNormalCam>::Ptr emptyCloud (new PointCloud<PointXYZRGBNormalCam>);
 
     ModelCoefficients::Ptr coefficients (new ModelCoefficients ());
     PointIndices::Ptr inliers (new PointIndices ());
-    PointIndices lastOutliers;
+//    PointIndices lastOutliers;
 
     // Create the segmentation object
     SACSegmentation<PointXYZRGBNormalCam> seg;
@@ -165,22 +208,57 @@ void PcMesher::segmentPlanes(){
     seg.setModelType (SACMODEL_PLANE);
     seg.setMethodType (SAC_RANSAC);
     seg.setMaxIterations (1000);
-    seg.setDistanceThreshold(0.01);
+//    seg.setDistanceThreshold(0.1);
+    seg.setDistanceThreshold(0.03);
 
 
     // Create the filtering object
     ExtractIndices<PointXYZRGBNormalCam> extract(true); // set to true to be able to extract the outliers also
 
-    int i = 0, nr_points = (int) cloud->points.size ();
+    int i = 0;
+    const int nr_points = (int) cloud->points.size ();
+    // To avoid an infinite loop
+    const int max_iter = 10;
+    int iter = 0;
     // While 5% of the original cloud is still there
-    while (cloud->points.size () > 0.01 * nr_points)
+    while (cloud->points.size () > 0.05 * nr_points) // 0.01
     {
+        if (iter == max_iter) break;
+
         // Segment the largest planar component from the remaining cloud
         seg.setInputCloud (cloud);
         seg.segment (*inliers, *coefficients);
         if (inliers->indices.size () == 0){
             std::cerr << "Could not estimate a planar model for the given dataset." << std::endl;
             break;
+        }
+
+        // We get the normal of the estimated plane
+        Eigen::Vector3f planeNormal(coefficients->values[0], coefficients->values[1], coefficients->values[2]);
+
+        const int inliersOrignalSize = inliers->indices.size();
+        // We check if every inlier orientation is the aprox. the same as the plane's
+        for (unsigned int j = 0; j < inliersOrignalSize; j++){
+            PointXYZRGBNormalCam current = cloud->points[inliers->indices[j]];
+            Eigen::Vector3f cur_norm(current.normal_x, current.normal_y, current.normal_z);
+
+            const float cos = planeNormal.dot(cur_norm) / (planeNormal.squaredNorm() * cur_norm.squaredNorm());
+            // vectors with normals in an angle bigger than 45º are marked with -1 in the inlier list
+            if ( fabs(cos) < 0.707){ // >45º
+                inliers->indices[j] = -1;
+            }
+        }
+
+        // inliers marked as -1 are removed from the list
+        inliers->indices.erase(std::remove(inliers->indices.begin(), inliers->indices.end(), -1), inliers->indices.end());
+
+        // if not enough points are left to determine a plane, we move to the following plane
+        bool badplane = false;
+        if (inliers->indices.size() < 0.008 * nr_points) {
+            std::cerr << iter << std::endl;
+            std::cerr << inliers->indices.size() << "/" << inliersOrignalSize << std::endl;
+            iter++;
+            badplane = true;
         }
 
         // Extract the inliers
@@ -192,30 +270,50 @@ void PcMesher::segmentPlanes(){
         // Indices to outliers
 //        extract.getRemovedIndices(lastOutliers);
 
-        std::cerr << "PointCloud #" << i+1 << " representing the planar component: " << cloud_p->width * cloud_p->height << " data points. Points reimaning: " << lastOutliers.indices.size() << std::endl;
+        if (!badplane){ // If we have a valid plane, we save it
 
-        // We create a pointer to a copy of the plane cloud to be able to store properly
-        PointCloud<PointXYZRGBNormalCam>::Ptr plane_cloud = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(*cloud_p);
+            // We create a pointer to a copy of the plane cloud to be able to store properly
+            PointCloud<PointXYZRGBNormalCam>::Ptr plane_cloud = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(*cloud_p);
 
-        pointClouds_.push_back(plane_cloud);
-        nClouds_++;
+            pointClouds_.push_back(plane_cloud);
+            nClouds_++;
 
-        // Write plane in ply file
-        std::stringstream ss;
-        ss << "out_" << i+1 << ".ply";
-        std::cerr << "PointCloud #" << i+1 << " exported." <<
-        io::savePLYFile(ss.str(), *plane_cloud);
+            // Create the filtering object
+            extract.setNegative (true);
+            extract.filter (*cloud_f);
+            cloud.swap (cloud_f);
 
-        // Create the filtering object
-        extract.setNegative (true);
-        extract.filter (*cloud_f);
-        cloud.swap (cloud_f);
-        i++;
+            *pointClouds_[0] += *tempPlaneCloud;
+            tempPlaneCloud = emptyCloud; // To clear the content of temPlaneCloud
+
+            std::cerr << "PointCloud #" << i+1 << " representing the planar component: " << cloud_p->width * cloud_p->height << " data points. ";
+            std::cerr << "Points reimaning: " << cloud->width * cloud->height << std::endl;
+
+
+            // Write plane in ply file
+            std::stringstream ss;
+            ss << "out_" << i+1 << ".ply";
+            std::cerr << "PointCloud #" << i+1 << " exported." << std::endl;
+            io::savePLYFile(ss.str(), *plane_cloud);
+
+            i++;
+            iter = 0;
+
+        } else { // In this case, the points are rearranged so we have a different result
+
+            extract.setNegative (true);
+            extract.filter (*cloud_f);
+            cloud.swap (cloud_f);
+
+            *pointClouds_[0] += *tempPlaneCloud;
+            tempPlaneCloud = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(*cloud_p);
+
+        }
+
     }
 
-
+    std::cerr << "Exporting non-planar points" << std::endl;
     io::savePLYFile("outliers.ply", *pointClouds_[0]);
-//    exportIndices(lastOutliers, "outliers.txt");
 
 }
 
@@ -374,7 +472,7 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
                         }
                     }
 
-                    radius = sum_distance / static_cast<float>(K) * 7.0f; // 3.0f
+                    radius = sum_distance / static_cast<float>(K) * 3.0f; // 3.0f
                 }
             }
 
@@ -423,8 +521,8 @@ PolygonMesh PcMesher::decimateMesh(const PolygonMesh& _mesh){
 
     PolygonMesh outputMesh;
     MeshQuadricDecimationVTK decimator;
-    decimator.setTargetReductionFactor(0.5);
     decimator.setInputMesh(meshPtr);
+    decimator.setTargetReductionFactor(0.99f);
     decimator.process(outputMesh);
 
     return outputMesh;
@@ -548,14 +646,14 @@ void PcMesher::getImageDimensions(std::string _imageName, unsigned int &_height,
     _height = input.getHeight();
     _width = input.getWidth();
 
-    std::cerr << "+" << _imageName << ": " << _width << " " << _height << std::endl;
+//    std::cerr << "+" << _imageName << ": " << _width << " " << _height << std::endl;
 
 
 }
 
 
 
-void PcMesher::readMesh(std::string _fileName){
+void PcMesher::readCloud(std::string _fileName){
 
     // This cloud is a temporal one which will be stored in the cloud vector
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud (new PointCloud<PointXYZRGBNormalCam>);
@@ -574,7 +672,7 @@ void PcMesher::readMesh(std::string _fileName){
 
 }
 
-void PcMesher::writeOneMesh(const unsigned int _index, std::string _fileName){
+void PcMesher::writeOneCloud(const unsigned int _index, std::string _fileName){
 
     std::cerr << "Exporting point cloud: " << _index + 1 << "/" << nClouds_ << std::endl;
 
@@ -608,9 +706,43 @@ PointCloud<PointXYZRGBNormalCam> PcMesher::combinePointClouds(std::vector<PointC
 
 }
 
+void PcMesher::assignCam2Mesh(const PolygonMesh &_mesh, const PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, const std::string _fileName){
+
+  std::ofstream outputFile(_fileName.c_str());
+
+    KdTreeFLANN<PointXYZRGBNormalCam> kdtree;
+    kdtree.setInputCloud(_cloud);
+
+    // Obtaining a PointCloud from a PointCloud2
+    PointCloud<PointXYZRGBNormalCam> meshCloud;
+    fromPCLPointCloud2(_mesh.cloud, meshCloud);
+    int nVtx = meshCloud.height * meshCloud.width;
+
+    // for each vertex of the mesh
+    for (unsigned int v = 0; v < nVtx; v++){
+
+        PointXYZRGBNormalCam searchPoint = meshCloud.points[v];
+        std::vector<int> pointIdxNKNSearch(1); // The closest. Just one.
+        std::vector<float> pointNKNSquaredDistance(1);
+
+        if (kdtree.nearestKSearch(searchPoint, 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0){
+            for (size_t i = 0; i < pointIdxNKNSearch.size(); ++i){ // This is stupid, it's just one iteration
+                std::vector<int> current = camPerVtx_[pointIdxNKNSearch[i]];
+                for (unsigned int j = 0; j < current.size(); j++){
+                    outputFile << current[j] << " ";
+                }
+                outputFile << "\n";
+            }
+        }
+    }
+
+    outputFile.close();
+
+}
+
 
 // All the point clouds in the vector are concatenated and printed into one file
-void PcMesher::writeMesh(std::string _fileName){
+void PcMesher::writeCloud(std::string _fileName){
 
     io::savePLYFile(_fileName, combinePointClouds());
 
@@ -631,9 +763,8 @@ void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_
 
         // This line has the position of the point
         if (point_line == 0){
-            unsigned int index = 0;
             float xyz[3];
-            for (; ptit  != point_tokens.end(); ++ptit, index++){
+            for (unsigned int index = 0; ptit  != point_tokens.end(); ++ptit, index++){
                 float value;
                 ss << *ptit;
                 ss >> value;
@@ -647,9 +778,8 @@ void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_
         }
         // This line has the color of the point
         else if (point_line == 1){
-            unsigned int index = 0;
             unsigned char rgb[3];
-            for (; ptit != point_tokens.end(); ++ptit, index++){
+            for (unsigned int index = 0; ptit != point_tokens.end(); ++ptit, index++){
                 float value;
                 ss << *ptit;
                 ss >> value;
@@ -671,24 +801,33 @@ void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_
             ss.clear();
             ++ptit;
 
+            std::vector<int> cam2vtx;
+
             if (nCam > 0){
-                int cam_value;
-                ss << *ptit;
-                ss >> cam_value;
-                ss.str(std::string());
-                ss.clear();
-                _point.camera = cam_value;
+                for (unsigned int index = 0; ptit != point_tokens.end(); ++ptit, index++){
+                    if (index%4 != 0) continue; // every four values we have the number of the camera, we don't care about the other values.
+                    int cam_value;
+                    ss << *ptit;
+                    ss >> cam_value;
+                    ss.str(std::string());
+                    ss.clear();
+                    if (index == 0){
+                        _point.camera = cam_value;
+                    }
+                    cam2vtx.push_back(cam_value);
+                }
             } else {
                 _point.camera = -1;
             }
+            camPerVtx_.push_back(cam2vtx);
         }
     }
 }
 
 
-void PcMesher::bundlerReader(std::string _fileName){
+void PcMesher::bundlerReader(const std::string _fileName){
 
-    std::cerr << "Reading Bundler file" << std::endl;
+    std::cerr << "Reading Bundler file... ";
 
     std::ifstream inputFile(_fileName.c_str());
     std::string line;
@@ -744,13 +883,16 @@ void PcMesher::bundlerReader(std::string _fileName){
 
         inputFile.close();
 
+        std::cerr << "done!: " << nPoints << " points read." << std::endl;
+
+
     } else {
         std::cerr << "Unable to open Bundle file" << std::endl;
     }
 
 }
 
-void PcMesher::readImageList(std::string _fileName){
+void PcMesher::readImageList(const std::string _fileName){
 
     std::cerr << "Reading image list file" << std::endl;
 
@@ -774,69 +916,33 @@ void PcMesher::readImageList(std::string _fileName){
 
     inputFile.close();
 
-
-    //-------------------------------//-------------------------------//-------------------------------
-
-
-//    std::cerr << "Reading image list file" << std::endl;
-
-//    cameraOrder_.resize(nCameras_);
-
-//    std::ifstream inputFile(_fileName);
-//    std::string line;
-
-//    std::vector<int> imageNumbers;
-//    imageNumbers.clear();
-
-//    if (inputFile.is_open()){
-
-////        do {
-//            std::getline(inputFile, line);
-////            if (line.empty()) std::getline(inputFile, line);
-////        } while ((line.at(0) != 'i') && (line.at(0) != 'I'));
-
-//        boost::tokenizer<> tokens(line);
-//        boost::tokenizer<>::iterator tit = tokens.begin();
-//        std::stringstream ss;
-//        tit++;
-//        ss << *tit;
-//        int ncam;
-//        ss >> ncam;
-
-//        imageNumbers.push_back(ncam);
-
-//        for (unsigned int i = 1; i < nCameras_; i++){
-//            std::getline(inputFile, line);
-//            boost::tokenizer<> moreTokens(line);
-//            boost::tokenizer<>::iterator mtit = moreTokens.begin();
-//            mtit++;
-//            std::stringstream nss;
-//            nss << *mtit;
-//            nss >> ncam;
-
-//            imageNumbers.push_back(ncam);
-
-//        }
-
-//        inputFile.close();
-
-
-//    } else {
-//        std::cerr << "Unable to open Bundle file" << std::endl;
-//    }
-
-//    // With this, we are still able to use the numbers if the list does not start in 0 or 1
-//    int min = *std::min_element(imageNumbers.begin(), imageNumbers.end());
-
-//    for (unsigned int i = 0; i < cameraOrder_.size(); i++){
-
-//        const int index = imageNumbers[i]-min;
-//        cameraOrder_[index] = i;
-//    }
-
 }
 
-void PcMesher::exportIndices(PointIndices& _indices, std::string _fileName){
+void PcMesher::readPLYMesh(const std::string _fileName, PolygonMesh &_mesh){
+
+    // Cloud file is loaded
+    if (io::loadPolygonFilePLY(_fileName, _mesh) == -1){
+        std::string message("Couldn't read file ");
+        message.append(_fileName);
+        message.append(" \n");
+        PCL_ERROR(message.c_str());
+        return;
+    }
+}
+
+void PcMesher::readOBJMesh(const std::string _fileName, PolygonMesh &_mesh){
+
+    // Cloud file is loaded
+    if (io::loadPolygonFileOBJ(_fileName, _mesh) == -1){
+        std::string message("Couldn't read file ");
+        message.append(_fileName);
+        message.append(" \n");
+        PCL_ERROR(message.c_str());
+        return;
+    }
+}
+
+void PcMesher::exportIndices(PointIndices& _indices, const std::string _fileName){
 
     std::cerr << "Exporting a txt file with points not included in any plane" << std::endl;
 
@@ -848,6 +954,37 @@ void PcMesher::exportIndices(PointIndices& _indices, std::string _fileName){
 
 
     outputFile.close();
+}
+
+
+void PcMesher::exportCamPerVtx(const std::string _fileName){
+
+    std::cerr << "Exported a txt with the list of cameras which 'sees' each vertex" << std::endl;
+    std::ofstream outputFile(_fileName.c_str());
+
+    for (unsigned int i = 0; i < camPerVtx_.size(); i++){
+        const std::vector<int> current = camPerVtx_[i];
+        for (unsigned int j = 0; j < current.size(); j++){
+            outputFile << current[j] << " ";
+        }
+        outputFile << "\n";
+    }
+
+    outputFile.close();
+
+}
+
+
+void PcMesher::removeOutliersFromCamPerVtx(PointIndices &_indices){
+
+    // Where there is an outlier, we set an empty vector
+    for (unsigned int i = 0; i < _indices.indices.size(); i++){
+        camPerVtx_[_indices.indices[i]].clear();
+    }
+
+    // std::remove efficiently removes every entry where there is an empty vector
+    camPerVtx_.erase(std::remove(camPerVtx_.begin(), camPerVtx_.end(), std::vector<int>(0)), camPerVtx_.end());
+
 }
 
 

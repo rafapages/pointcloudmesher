@@ -2,6 +2,7 @@
 
 #include <pcl/io/ply_io.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/io/vtk_lib_io.h>
 
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/features/normal_3d.h>
@@ -652,7 +653,7 @@ void PcMesher::getImageDimensions(std::string _imageName, unsigned int &_height,
 
 
 
-void PcMesher::readMesh(std::string _fileName){
+void PcMesher::readCloud(std::string _fileName){
 
     // This cloud is a temporal one which will be stored in the cloud vector
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud (new PointCloud<PointXYZRGBNormalCam>);
@@ -671,7 +672,7 @@ void PcMesher::readMesh(std::string _fileName){
 
 }
 
-void PcMesher::writeOneMesh(const unsigned int _index, std::string _fileName){
+void PcMesher::writeOneCloud(const unsigned int _index, std::string _fileName){
 
     std::cerr << "Exporting point cloud: " << _index + 1 << "/" << nClouds_ << std::endl;
 
@@ -741,7 +742,7 @@ void PcMesher::assignCam2Mesh(const PolygonMesh &_mesh, const PointCloud<PointXY
 
 
 // All the point clouds in the vector are concatenated and printed into one file
-void PcMesher::writeMesh(std::string _fileName){
+void PcMesher::writeCloud(std::string _fileName){
 
     io::savePLYFile(_fileName, combinePointClouds());
 
@@ -917,6 +918,30 @@ void PcMesher::readImageList(const std::string _fileName){
 
 }
 
+void PcMesher::readPLYMesh(const std::string _fileName, PolygonMesh &_mesh){
+
+    // Cloud file is loaded
+    if (io::loadPolygonFilePLY(_fileName, _mesh) == -1){
+        std::string message("Couldn't read file ");
+        message.append(_fileName);
+        message.append(" \n");
+        PCL_ERROR(message.c_str());
+        return;
+    }
+}
+
+void PcMesher::readOBJMesh(const std::string _fileName, PolygonMesh &_mesh){
+
+    // Cloud file is loaded
+    if (io::loadPolygonFileOBJ(_fileName, _mesh) == -1){
+        std::string message("Couldn't read file ");
+        message.append(_fileName);
+        message.append(" \n");
+        PCL_ERROR(message.c_str());
+        return;
+    }
+}
+
 void PcMesher::exportIndices(PointIndices& _indices, const std::string _fileName){
 
     std::cerr << "Exporting a txt file with points not included in any plane" << std::endl;
@@ -934,7 +959,8 @@ void PcMesher::exportIndices(PointIndices& _indices, const std::string _fileName
 
 void PcMesher::exportCamPerVtx(const std::string _fileName){
 
-  std::ofstream outputFile(_fileName.c_str());
+    std::cerr << "Exported a txt with the list of cameras which 'sees' each vertex" << std::endl;
+    std::ofstream outputFile(_fileName.c_str());
 
     for (unsigned int i = 0; i < camPerVtx_.size(); i++){
         const std::vector<int> current = camPerVtx_[i];

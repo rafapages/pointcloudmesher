@@ -75,11 +75,14 @@ public:
 
     // I/O functions
     void bundlerPointReader(PointXYZRGBNormalCam& _point, std::ifstream& _stream);
-    void readMesh(const std::string _fileName);
-    void writeOneMesh(const unsigned int _index, const std::string _fileName);
-    void writeMesh(const std::string _fileName);
+    void readCloud(const std::string _fileName);
+    void writeOneCloud(const unsigned int _index, const std::string _fileName);
+    void writeCloud(const std::string _fileName);
     void bundlerReader(const std::string _fileName);
     void readImageList(const std::string _fileName);
+
+    void readPLYMesh(const std::string _fileName, PolygonMesh& _mesh);
+    void readOBJMesh(const std::string _fileName, PolygonMesh& _mesh);
 
     void exportIndices (PointIndices& _indices, const std::string _fileName);
     void exportCamPerVtx (const std::string _fileName);

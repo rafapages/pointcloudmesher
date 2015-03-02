@@ -321,9 +321,6 @@ void PcMesher::segmentPlanes(){
 void PcMesher::segmentCylinders(){
 
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud = pointClouds_[0];
-//    PointCloud<Normal>::Ptr normal_cloud (new PointCloud<Normal>);
-
-//    Normal n (cloud->points[0].normal_x, cloud->points[0].normal_y, cloud->points[0].normal_z);
 
     SACSegmentationFromNormals<PointXYZRGBNormalCam, PointXYZRGBNormalCam> seg;
     ExtractIndices<PointXYZRGBNormalCam> extract;

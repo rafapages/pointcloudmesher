@@ -28,8 +28,6 @@ int main (int argc, char *argv[]){
     // Statistical outlier removal
     cloud.removeAllOutliers();
 
-    cloud.extractClusters(0);
-
     // We first estimate normals to get an initial orientation
     cloud.estimateAllNormals(0.1);
     cloud.writeCloud(nameout + "_sinoutliers.ply");

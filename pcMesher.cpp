@@ -371,10 +371,10 @@ void PcMesher::segmentCylinders(){
     seg.setOptimizeCoefficients (true);
     seg.setModelType (SACMODEL_CYLINDER);
     seg.setMethodType (SAC_RANSAC);
-    seg.setNormalDistanceWeight (0.1);
+//    seg.setNormalDistanceWeight (0.1);
     seg.setMaxIterations (1000);
-    seg.setDistanceThreshold (0.05);
-    seg.setRadiusLimits (0, 0.1);
+    seg.setDistanceThreshold (0.1);
+    seg.setRadiusLimits (0.5, 2);
     seg.setInputCloud (cloud);
     seg.setInputNormals (cloud);
 
@@ -396,6 +396,7 @@ void PcMesher::segmentCylinders(){
     if (cloud_cylinder->points.empty ()) {
       std::cerr << "Can't find the cylindrical component." << std::endl;
     } else {
+        io::savePLYFile("cilindro.ply", *cloud_cylinder);
         pointClouds_.push_back(cyl_cloud);
         nClouds_++;
     }

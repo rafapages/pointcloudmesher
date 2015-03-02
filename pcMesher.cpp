@@ -18,6 +18,7 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/extract_indices.h>
+#include <pcl/segmentation/extract_clusters.h>
 
 #include <pcl/surface/vtk_smoothing/vtk_mesh_quadric_decimation.h>
 
@@ -186,6 +187,44 @@ void PcMesher::fixAllNormals(){
         fixNormal(i);
 
     }
+}
+
+void PcMesher::extractClusters(const unsigned int _index){
+
+    // Creating the KdTree object for the search method of the extraction
+      pcl::search::KdTree<PointXYZRGBNormalCam>::Ptr tree (new pcl::search::KdTree<PointXYZRGBNormalCam>);
+      tree->setInputCloud (pointClouds_[_index]);
+
+      std::vector<pcl::PointIndices> cluster_indices;
+      pcl::EuclideanClusterExtraction<PointXYZRGBNormalCam> ec;
+      ec.setClusterTolerance (0.1); // 2cm
+      ec.setMinClusterSize (100);
+      ec.setMaxClusterSize (25000);
+      ec.setSearchMethod (tree);
+      ec.setInputCloud (pointClouds_[_index]);
+      ec.extract (cluster_indices);
+
+      int j = 0;
+      for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it){
+        pcl::PointCloud<PointXYZRGBNormalCam>::Ptr cloud_cluster (new pcl::PointCloud<PointXYZRGBNormalCam>);
+        for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit){
+          cloud_cluster->points.push_back (pointClouds_[_index]->points[*pit]); //*
+        }
+        cloud_cluster->width = cloud_cluster->points.size ();
+        cloud_cluster->height = 1;
+        cloud_cluster->is_dense = true;
+
+
+        // THIS PART NEEDS TO BE IMPROVED TO SAVE THE POINTS AND NOT EXPORT THEM!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
+        std::stringstream ss;
+        ss << "cloud_cluster_" << j << ".ply";
+        io::savePLYFile(ss.str (), *cloud_cluster); //*
+        j++;
+      }
+
+
+
 }
 
 void PcMesher::segmentPlanes(){

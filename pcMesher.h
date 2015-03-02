@@ -41,6 +41,9 @@ public:
     void fixNormal(const unsigned int _index);
     void fixAllNormals();
 
+    // Cluster the point cloud into several sets
+    void extractClusters(const unsigned int _index);
+
     // Plane segmentation
     void segmentPlanes();
 

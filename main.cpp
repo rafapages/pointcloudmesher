@@ -22,6 +22,7 @@ int main (int argc, char *argv[]){
     cloud.bundlerReader(argv[1]);
     cloud.readImageList(argv[2]);
     cloud.writeCameraSetupFile(nameout + "_cameras.txt");
+//    cloud.readCloud(argv[1]);
 
     cloud.writeCloud(nameout + "_input.ply");
 
@@ -58,7 +59,7 @@ int main (int argc, char *argv[]){
     io::savePLYFile(nameout + "_poisson_limpio.ply", m);
     io::savePLYFile(nameout + "_poisson_limpio_decimated.ply", simpleM);
 
-    cloud.assignCam2Mesh(m, combinedCloudPtr, "meshcamera.txt");
+    cloud.assignCam2Mesh(m, combinedCloudPtr, nameout + "_meshcamera.txt");
 
 //    cloud.drawCameras();
 

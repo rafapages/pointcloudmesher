@@ -60,6 +60,7 @@ int main (int argc, char *argv[]){
     io::savePLYFile(nameout + "_poisson_limpio_decimated.ply", simpleM);
 
     cloud.assignCam2Mesh(m, combinedCloudPtr, nameout + "_meshcamera.txt");
+    cloud.assignCam2Mesh(simpleM, combinedCloudPtr, nameout + "_limpio_decimated_meshcamera.txt");
 
 //    cloud.drawCameras();
 

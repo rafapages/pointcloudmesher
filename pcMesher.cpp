@@ -491,10 +491,10 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
             float radius;
 
             if ( kdtree.nearestKSearch (searchPoint, 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ){
-                for (size_t i = 0; i < pointIdxNKNSearch.size(); ++i){ // It's just one iteration
+                for (size_t ind = 0; ind < pointIdxNKNSearch.size(); ++ind){ // It's just one iteration
 
                     // Now we search for the K closest points to determine the point cloud density
-                    PointXYZRGBNormalCam anchorPoint = _cloud->points[pointIdxNKNSearch[i]];
+                    PointXYZRGBNormalCam anchorPoint = _cloud->points[pointIdxNKNSearch[ind]];
 
                     int K = 10;
 
@@ -502,6 +502,7 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
                     std::vector<float> pointSquaredDistance(K);
 
                     float sum_distance = 0.0;
+
 
                     if (kdtree.nearestKSearch(anchorPoint, K, pointIdx, pointSquaredDistance) > 0){
                         for (int j = 0; j < pointIdx.size(); ++j){
@@ -550,6 +551,69 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
 
 }
 
+PolygonMesh PcMesher::deleteWrongVertices2(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh _inputMesh){
+
+    std::cerr << "Cleaning the Poisson mesh" << std::endl;
+
+    // This value needs to be automatized
+
+    KdTreeFLANN<PointXYZRGBNormalCam> kdtree;
+    kdtree.setInputCloud(_cloud);
+
+    // Some data for the output mesh:
+    // vector for storing valid polygons
+    std::vector<Vertices> validFaces;
+    // PointCloud instead of PCLPointCloud2
+    PointCloud<PointXYZRGBNormalCam> meshCloud;
+    fromPCLPointCloud2 (_inputMesh.cloud, meshCloud);
+
+    // foreach face
+    std::vector<Vertices, std::allocator<Vertices> >::iterator face_it; // por qué el allocator?
+    for (face_it = _inputMesh.polygons.begin(); face_it != _inputMesh.polygons.end(); ++face_it) {
+
+        bool isInside = true;
+
+        std::vector<int> pointIdxRadiusSearch;
+        std::vector<float> pointRadiusSquaredDistance;
+
+        float radius = 0.3;
+
+        for (unsigned int i = 0; i < 3; i++){
+
+            PointXYZRGBNormalCam searchPoint = meshCloud.points[face_it->vertices[i]];
+
+            if (kdtree.radiusSearch(searchPoint, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) <= 0){
+                isInside = false;
+                break;
+
+            }
+
+        }
+
+        if (isInside) validFaces.push_back(*face_it);
+    }
+
+
+    // Write output polygon mesh
+    PolygonMesh outputMesh;
+    // Same point cloud as the input mesh
+    outputMesh.cloud = _inputMesh.cloud;
+    // Only the valid faces
+    outputMesh.polygons.clear();
+    outputMesh.polygons.insert(outputMesh.polygons.begin(), validFaces.begin(), validFaces.end());
+
+    // Here we delete unused vertices
+    PolygonMesh finalOutputMesh;
+    surface::SimplificationRemoveUnusedVertices cleaner;
+    cleaner.simplify(outputMesh, finalOutputMesh);
+
+    return finalOutputMesh;
+
+
+}
+
+
+
 PolygonMesh PcMesher::decimateMesh(const PolygonMesh& _mesh){
 
     std::cerr << "Decimating mesh" << std::endl;
@@ -559,7 +623,7 @@ PolygonMesh PcMesher::decimateMesh(const PolygonMesh& _mesh){
     PolygonMesh outputMesh;
     MeshQuadricDecimationVTK decimator;
     decimator.setInputMesh(meshPtr);
-    decimator.setTargetReductionFactor(0.9f);
+    decimator.setTargetReductionFactor(0.99f);
     decimator.process(outputMesh);
 
     return outputMesh;

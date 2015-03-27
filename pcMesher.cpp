@@ -24,6 +24,8 @@
 
 #include <FreeImagePlus.h>
 
+#include <stdlib.h>     /* strtol */
+
 #include "pcMesher.h"
 
 PcMesher::PcMesher(){
@@ -247,8 +249,8 @@ void PcMesher::segmentPlanes(){
     seg.setModelType (SACMODEL_PLANE);
     seg.setMethodType (SAC_RANSAC);
     seg.setMaxIterations (1000);
-//    seg.setDistanceThreshold(0.1);
-    seg.setDistanceThreshold(0.03);
+    seg.setDistanceThreshold(0.1);
+//    seg.setDistanceThreshold(0.03);
 
 
     // Create the filtering object
@@ -754,7 +756,7 @@ void PcMesher::getImageDimensions(std::string _imageName, unsigned int &_height,
 
 
 
-void PcMesher::readCloud(std::string _fileName){
+void PcMesher::readPLYCloud(const std::string& _fileName){
 
     // This cloud is a temporal one which will be stored in the cloud vector
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud (new PointCloud<PointXYZRGBNormalCam>);
@@ -1073,6 +1075,55 @@ void PcMesher::exportCamPerVtx(const std::string _fileName){
 
     outputFile.close();
 
+}
+
+void PcMesher::deleteWrongCameras(const std::string _fileName){
+
+    std::ifstream cam2del(_fileName.c_str());
+    std::vector<int> lineNums;
+
+    // We first read the input file which determines the cameras to delete
+    if (cam2del.is_open()){
+
+        std::string line;
+
+        while(!cam2del.eof()){
+            std::getline(cam2del, line);
+            char * pEnd;
+            int num = strtol(line.c_str(), &pEnd,10);
+            if (num == 0) continue;
+            lineNums.push_back(num);
+        }
+
+    } else {
+        cerr << "Unable to open image list file" << endl;
+        exit(-1);
+    }
+    cam2del.close();
+
+    // We remove the cameras from the list
+
+    for (unsigned int i = 0; i < lineNums.size(); i++){
+        const int index = lineNums[i];
+        imageList_[index] = std::string("");
+    }
+
+    imageList_.erase(std::remove(imageList_.begin(), imageList_.end(), std::string("")), imageList_.end());
+
+    for (int i = lineNums.size()-1; i >= 0; i--){
+        const int index = lineNums[i];
+        cameras_.erase(cameras_.begin()+index);
+    }
+
+    // We export a new image-list file
+
+    std::ofstream newImageList("newImageList.txt");
+
+    for (unsigned int i = 0; i < imageList_.size(); i++){
+        newImageList << imageList_[i] << endl;
+    }
+
+    newImageList.close();
 }
 
 

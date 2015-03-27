@@ -2,6 +2,7 @@
 #define PCMESHER_H
 
 #include <iostream>
+#include <string>
 #include <stdio.h>
 
 #include <pcl/surface/poisson.h>
@@ -79,7 +80,7 @@ public:
 
     // I/O functions
     void bundlerPointReader(PointXYZRGBNormalCam& _point, std::ifstream& _stream);
-    void readCloud(const std::string _fileName);
+    void readPLYCloud(const std::string& _fileName);
     void writeOneCloud(const unsigned int _index, const std::string _fileName);
     void writeCloud(const std::string _fileName);
     void bundlerReader(const std::string _fileName);
@@ -90,6 +91,9 @@ public:
 
     void exportIndices (PointIndices& _indices, const std::string _fileName);
     void exportCamPerVtx (const std::string _fileName);
+
+    // Other...
+    void deleteWrongCameras(const std::string _fileName);
 
 private:
 

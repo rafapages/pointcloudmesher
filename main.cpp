@@ -123,10 +123,13 @@ int main (int argc, char *argv[]){
     PcMesher cloud;
     PolygonMesh mesh;
 
-    cloud.readCloud(argv[1]);
-    cloud.readPLYMesh(argv[2], mesh);
+    cloud.readPLYCloud(argv[1]);
+//    cloud.readPLYMesh(argv[2], mesh);
 
-    PolygonMesh m = cloud.deleteWrongVertices2(cloud.getPointCloudPtr(0), mesh);
+    PolygonMesh first_mesh = cloud.surfaceReconstruction(cloud.getPointCloudPtr(0));
+    io::savePLYFile("test_poisson.ply", first_mesh);
+//    PolygonMesh m = cloud.deleteWrongVertices2(cloud.getPointCloudPtr(0), mesh);
+    PolygonMesh m = cloud.deleteWrongVertices2(cloud.getPointCloudPtr(0), first_mesh);
 
     PolygonMesh simpleM = cloud.decimateMesh(m);
 
@@ -134,4 +137,17 @@ int main (int argc, char *argv[]){
     io::savePLYFile("test_poisson_limpio_decimated.ply", simpleM);
 
     return 0;
+
+//    //---------------------------------------------------------------------------
+//    // Para arreglar la lista de imágenes
+//    //---------------------------------------------------------------------------
+
+//    PcMesher cloud;
+
+//    cloud.bundlerReader(argv[1]);
+//    cloud.readImageList(argv[2]);
+//    cloud.deleteWrongCameras(argv[3]);
+//    cloud.writeCameraSetupFile("clean_camera_setup.txt");
+
+//    return 0;
 }

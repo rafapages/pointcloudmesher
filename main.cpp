@@ -81,7 +81,7 @@ int main (int argc, char *argv[]){
 //    PcMesher cloud;
 
 //    // Reading input parameteres: blunder file and image list
-//    cloud.readMesh(argv[1]);
+//    cloud.readPLYCloud(argv[1]);
 
 //    PolygonMesh first_mesh = cloud.surfaceReconstruction(cloud.getPointCloudPtr(0));
 //    io::savePLYFile("poisson_v2.ply", first_mesh);

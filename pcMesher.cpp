@@ -512,7 +512,7 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
                         }
                     }
 
-                    radius = sum_distance / static_cast<float>(K) * 3.0f; // 3.0f
+                    radius = sum_distance / static_cast<float>(K) * 10.0f; // 3.0f: the bigger this number, the lower number of holes
                 }
             }
 

@@ -54,12 +54,14 @@ int main (int argc, char *argv[]){
     io::savePLYFile(nameout + "_poisson.ply", first_mesh);
 
     PolygonMesh m = cloud.deleteWrongVertices(combinedCloudPtr, first_mesh);
-    PolygonMesh simpleM = cloud.decimateMesh(m);
+    PolygonMesh ms = cloud.smoothMeshLaplacian(m);
+    PolygonMesh simpleM = cloud.decimateMesh(ms);
 
     io::savePLYFile(nameout + "_poisson_limpio.ply", m);
-    io::savePLYFile(nameout + "_poisson_limpio_decimated.ply", simpleM);
+    io::savePLYFile(nameout + "_poisson_limpio_smooth.ply", ms);
+    io::savePLYFile(nameout + "_poisson_limpio_smooth_decimated.ply", simpleM);
 
-    cloud.assignCam2Mesh(m, combinedCloudPtr, nameout + "_meshcamera.txt");
+    cloud.assignCam2Mesh(ms, combinedCloudPtr, nameout + "_meshcamera.txt");
     cloud.assignCam2Mesh(simpleM, combinedCloudPtr, nameout + "_limpio_decimated_meshcamera.txt");
 
 //    cloud.drawCameras();
@@ -91,6 +93,24 @@ int main (int argc, char *argv[]){
 //    io::savePLYFile("poisson_limpio_v2.ply", m);
 
 //    return 0;
+
+//    //------------------------------------------------------------------------
+//    // Just Poisson smooth
+//    //------------------------------------------------------------------------
+//    if (argc != 2){
+//        std::cerr << "Wrong number of input paremeters" << std::endl;
+//        return 0;
+//    }
+
+//    PcMesher cloud;
+//    PolygonMesh mesh;
+//    cloud.readPLYMesh(argv[1], mesh);
+//    PolygonMesh smoothMes = cloud.smoothMeshLaplacian(mesh);
+
+//    io::savePLYFile("smooth.ply", smoothMes);
+
+//    return 0;
+
 
     //----------------------------------------------------------------------------
     // Just camera per vertex of the mesh
@@ -180,6 +200,8 @@ int main (int argc, char *argv[]){
 
 
 //    return 0;
+
+
 
 
 }

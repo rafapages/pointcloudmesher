@@ -21,6 +21,7 @@
 #include <pcl/segmentation/extract_clusters.h>
 
 #include <pcl/surface/vtk_smoothing/vtk_mesh_quadric_decimation.h>
+#include <pcl/surface/vtk_smoothing/vtk_mesh_smoothing_laplacian.h>
 
 #include <FreeImagePlus.h>
 
@@ -629,6 +630,23 @@ PolygonMesh PcMesher::decimateMesh(const PolygonMesh& _mesh){
     decimator.process(outputMesh);
 
     return outputMesh;
+}
+
+PolygonMesh PcMesher::smoothMeshLaplacian(const PolygonMesh &_mesh){
+
+    std::cerr << "Applying Laplacian filtering to mesh" << std::endl;
+
+    PolygonMesh::Ptr meshPtr = boost::make_shared<PolygonMesh>(_mesh);
+
+    PolygonMesh outputMesh;
+    MeshSmoothingLaplacianVTK smoother;
+    smoother.setInputMesh(meshPtr);
+    smoother.setNumIter(10);
+    smoother.setRelaxationFactor(0.5);
+    smoother.process(outputMesh);
+
+    return outputMesh;
+
 }
 
 void PcMesher::drawCameras(){

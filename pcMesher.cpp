@@ -76,7 +76,7 @@ void PcMesher::removeOutliers(unsigned int _index){
 
     StatisticalOutlierRemoval<PointXYZRGBNormalCam> sor(true); // Setting this to true we are able to extract indices of deleted points
     sor.setInputCloud(cloud);
-    sor.setMeanK(10);
+    sor.setMeanK(50);
     sor.setStddevMulThresh(1.0);
     sor.filter(*cloud);
 

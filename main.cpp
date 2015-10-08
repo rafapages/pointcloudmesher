@@ -7,7 +7,7 @@
 
 int main (int argc, char *argv[]){
 
- /*   if (argc != 3){
+    if (argc != 3){
         std::cerr << "Wrong number of input paremeters" << std::endl;
         std::cerr << "Usage: " << argv[0] << " <bundlerfile.out> <image-list.txt>" << std::endl;
         return 0;
@@ -68,7 +68,6 @@ int main (int argc, char *argv[]){
 
     return 0;
 
-    */
 
 //    //------------------------------------------------------------------------
 //    // Just Poisson
@@ -153,34 +152,34 @@ int main (int argc, char *argv[]){
 
 //    return 0;
 
-    //---------------------------------------------------------------------------
-    // Para reconstruir la nube de puntos del skeletonScanner
-    //---------------------------------------------------------------------------
+//    //---------------------------------------------------------------------------
+//    // Para reconstruir la nube de puntos del skeletonScanner
+//    //---------------------------------------------------------------------------
 
-    if (argc != 2){
-        std::cerr << "Wrong number of input parameters!" << std::endl;
-        std::cerr << "Usage: " << argv[0] << " <inputPointCloud.plu>" << std::endl;
-        return 0;
-    }
+//    if (argc != 2){
+//        std::cerr << "Wrong number of input parameters!" << std::endl;
+//        std::cerr << "Usage: " << argv[0] << " <inputPointCloud.plu>" << std::endl;
+//        return 0;
+//    }
 
-    std::string namein(argv[1]);
-    std::string nameout = namein.substr(0, namein.size()-4);
+//    std::string namein(argv[1]);
+//    std::string nameout = namein.substr(0, namein.size()-4);
 
-    PcMesher cloud;
-    cloud.readPLYCloud(namein);
+//    PcMesher cloud;
+//    cloud.readPLYCloud(namein);
 
-    PointCloud<PointXYZRGBNormalCam>::Ptr pc = cloud.getPointCloudPtr(0);
-    std::cerr << "Number of points: " << pc->height * pc->width << std::endl;
+//    PointCloud<PointXYZRGBNormalCam>::Ptr pc = cloud.getPointCloudPtr(0);
+//    std::cerr << "Number of points: " << pc->height * pc->width << std::endl;
 
-//    cloud.removeAllOutliers();
-//    cloud.writeCloud(nameout + "_sinoutliers.ply");
+////    cloud.removeAllOutliers();
+////    cloud.writeCloud(nameout + "_sinoutliers.ply");
 
-    cloud.estimateAllNormals();
-    cloud.writeCloud(nameout + "_normals.ply");
+//    cloud.estimateAllNormals();
+//    cloud.writeCloud(nameout + "_normals.ply");
 
 
 
-    return 0;
+//    return 0;
 
 
 }

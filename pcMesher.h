@@ -62,6 +62,7 @@ public:
     PolygonMesh deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh _inputMesh);
     PolygonMesh deleteWrongVertices2(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh _inputMesh);
     PolygonMesh decimateMesh(const PolygonMesh& _mesh);
+    PolygonMesh smoothMeshLaplacian(const PolygonMesh& _mesh);
 
     // Adding every camera to the cloud to see if their position is correct
     void drawCameras();

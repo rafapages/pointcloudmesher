@@ -54,19 +54,36 @@ int main (int argc, char *argv[]){
     io::savePLYFile(nameout + "_poisson.ply", first_mesh);
 
     PolygonMesh m = cloud.deleteWrongVertices(combinedCloudPtr, first_mesh);
+<<<<<<< HEAD
     PolygonMesh simpleM = cloud.decimateMesh(m);
 
     io::savePLYFile(nameout + "_poisson_limpio.ply", m);
     io::savePLYFile(nameout + "_poisson_limpio_decimated.ply", simpleM);
 
     cloud.assignCam2Mesh(m, combinedCloudPtr, nameout + "_meshcamera.txt");
+=======
+    PolygonMesh ms = cloud.smoothMeshLaplacian(m);
+    PolygonMesh simpleM = cloud.decimateMesh(ms);
+
+    io::savePLYFile(nameout + "_poisson_limpio.ply", m);
+    io::savePLYFile(nameout + "_poisson_limpio_smooth.ply", ms);
+    io::savePLYFile(nameout + "_poisson_limpio_smooth_decimated.ply", simpleM);
+
+    cloud.assignCam2Mesh(ms, combinedCloudPtr, nameout + "_meshcamera.txt");
+>>>>>>> origin/develop
     cloud.assignCam2Mesh(simpleM, combinedCloudPtr, nameout + "_limpio_decimated_meshcamera.txt");
 
 //    cloud.drawCameras();
 
     cloud.writeCloud(nameout + "_output.ply");
+<<<<<<< HEAD
 
     return 0;
+=======
+
+    return 0;
+
+>>>>>>> origin/develop
 
 //    //------------------------------------------------------------------------
 //    // Just Poisson
@@ -80,7 +97,7 @@ int main (int argc, char *argv[]){
 //    PcMesher cloud;
 
 //    // Reading input parameteres: blunder file and image list
-//    cloud.readMesh(argv[1]);
+//    cloud.readPLYCloud(argv[1]);
 
 //    PolygonMesh first_mesh = cloud.surfaceReconstruction(cloud.getPointCloudPtr(0));
 //    io::savePLYFile("poisson_v2.ply", first_mesh);
@@ -90,6 +107,24 @@ int main (int argc, char *argv[]){
 //    io::savePLYFile("poisson_limpio_v2.ply", m);
 
 //    return 0;
+
+//    //------------------------------------------------------------------------
+//    // Just Poisson smooth
+//    //------------------------------------------------------------------------
+//    if (argc != 2){
+//        std::cerr << "Wrong number of input paremeters" << std::endl;
+//        return 0;
+//    }
+
+//    PcMesher cloud;
+//    PolygonMesh mesh;
+//    cloud.readPLYMesh(argv[1], mesh);
+//    PolygonMesh smoothMes = cloud.smoothMeshLaplacian(mesh);
+
+//    io::savePLYFile("smooth.ply", smoothMes);
+
+//    return 0;
+
 
     //----------------------------------------------------------------------------
     // Just camera per vertex of the mesh
@@ -150,4 +185,37 @@ int main (int argc, char *argv[]){
 //    cloud.writeCameraSetupFile("clean_camera_setup.txt");
 
 //    return 0;
+
+//    //---------------------------------------------------------------------------
+//    // Para reconstruir la nube de puntos del skeletonScanner
+//    //---------------------------------------------------------------------------
+
+//    if (argc != 2){
+//        std::cerr << "Wrong number of input parameters!" << std::endl;
+//        std::cerr << "Usage: " << argv[0] << " <inputPointCloud.plu>" << std::endl;
+//        return 0;
+//    }
+
+//    std::string namein(argv[1]);
+//    std::string nameout = namein.substr(0, namein.size()-4);
+
+//    PcMesher cloud;
+//    cloud.readPLYCloud(namein);
+
+//    PointCloud<PointXYZRGBNormalCam>::Ptr pc = cloud.getPointCloudPtr(0);
+//    std::cerr << "Number of points: " << pc->height * pc->width << std::endl;
+
+////    cloud.removeAllOutliers();
+////    cloud.writeCloud(nameout + "_sinoutliers.ply");
+
+//    cloud.estimateAllNormals();
+//    cloud.writeCloud(nameout + "_normals.ply");
+
+
+
+//    return 0;
+
+
+
+
 }

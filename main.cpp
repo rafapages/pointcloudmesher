@@ -54,14 +54,8 @@ int main (int argc, char *argv[]){
     io::savePLYFile(nameout + "_poisson.ply", first_mesh);
 
     PolygonMesh m = cloud.deleteWrongVertices(combinedCloudPtr, first_mesh);
-<<<<<<< HEAD
-    PolygonMesh simpleM = cloud.decimateMesh(m);
-
-    io::savePLYFile(nameout + "_poisson_limpio.ply", m);
-    io::savePLYFile(nameout + "_poisson_limpio_decimated.ply", simpleM);
 
     cloud.assignCam2Mesh(m, combinedCloudPtr, nameout + "_meshcamera.txt");
-=======
     PolygonMesh ms = cloud.smoothMeshLaplacian(m);
     PolygonMesh simpleM = cloud.decimateMesh(ms);
 
@@ -70,20 +64,13 @@ int main (int argc, char *argv[]){
     io::savePLYFile(nameout + "_poisson_limpio_smooth_decimated.ply", simpleM);
 
     cloud.assignCam2Mesh(ms, combinedCloudPtr, nameout + "_meshcamera.txt");
->>>>>>> origin/develop
     cloud.assignCam2Mesh(simpleM, combinedCloudPtr, nameout + "_limpio_decimated_meshcamera.txt");
 
 //    cloud.drawCameras();
 
     cloud.writeCloud(nameout + "_output.ply");
-<<<<<<< HEAD
 
     return 0;
-=======
-
-    return 0;
-
->>>>>>> origin/develop
 
 //    //------------------------------------------------------------------------
 //    // Just Poisson

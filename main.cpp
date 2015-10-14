@@ -4,8 +4,26 @@
 #include <pcl/io/pcd_io.h>
 
 #include <boost/make_shared.hpp>
+#include <boost/program_options.hpp>
 
 int main (int argc, char *argv[]){
+
+    // Parsing execution options
+    try {
+
+        namespace po = boost::program_options;
+
+        po::options_description desc("Options");
+
+
+    }
+    catch(std::exception& e) {
+        std::cerr << "error: " << e.what() << std::endl;
+        return 1;
+    }
+
+
+
 
     if (argc != 3){
         std::cerr << "Wrong number of input paremeters" << std::endl;

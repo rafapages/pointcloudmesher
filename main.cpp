@@ -14,12 +14,41 @@ int main (int argc, char *argv[]){
         namespace po = boost::program_options;
 
         po::options_description desc("Options");
+        desc.add_options()
+                ("help,h", "Print this help message")
+                ("all,a", "Run the complete system")
+                ("poisson,p", "Run just the poisson reconstruction given a point cloud")
+                ;
 
+        po::variables_map vm;
+        po::store(po::parse_command_line(argc, argv, desc), vm);
+        po::notify(vm);
+
+        if (vm.count("help")) {
+            std::cerr << desc << std::endl;
+            return 0;
+        }
+
+
+        // Either complete system or just poisson will run
+
+        if (vm.count("poisson")) {
+            std::cerr << "Only poisson reconstruction will now run." << std::endl;
+
+        } else {
+            std::cerr << "Complete system will now run" << std::endl;
+        }
 
     }
+
     catch(std::exception& e) {
         std::cerr << "error: " << e.what() << std::endl;
+        std::cerr << "Run: " << argv[0] << " -h     if you need help" << std::endl;
         return 1;
+    }
+
+    catch(...) {
+        std::cerr << "Exception of unknown type!" << std:: endl;
     }
 
 

@@ -127,6 +127,7 @@ int main (int argc, char *argv[]){
         io::savePLYFile(nameout + "_poisson_limpio.ply", m);
         io::savePLYFile(nameout + "_poisson_limpio_smooth.ply", ms);
         io::savePLYFile(nameout + "_poisson_limpio_smooth_decimated.ply", simpleM);
+        cloud.writeOBJMesh(nameout + ".obj", simpleM);
 
         cloud.assignCam2Mesh(ms, combinedCloudPtr, nameout + "_meshcamera.txt");
         cloud.assignCam2Mesh(simpleM, combinedCloudPtr, nameout + "_limpio_decimated_meshcamera.txt");
@@ -159,6 +160,8 @@ int main (int argc, char *argv[]){
         PolygonMesh ms = cloud.smoothMeshLaplacian(m);
 
         io::savePLYFile("poisson_clean_smooth.ply", ms);
+        cloud.writeOBJMesh("poisson_clean_smooth.obj", ms);
+
     }
 
 
@@ -254,8 +257,5 @@ int main (int argc, char *argv[]){
 
 
 //    return 0;
-
-
-
 
 }

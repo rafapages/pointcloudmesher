@@ -89,6 +89,7 @@ public:
 
     void readPLYMesh(const std::string _fileName, PolygonMesh& _mesh);
     void readOBJMesh(const std::string _fileName, PolygonMesh& _mesh);
+    void writeOBJMesh(const std::string _fileName, PolygonMesh& _mesh);
 
     void exportIndices (PointIndices& _indices, const std::string _fileName);
     void exportCamPerVtx (const std::string _fileName);

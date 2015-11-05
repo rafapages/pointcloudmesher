@@ -1063,6 +1063,32 @@ void PcMesher::readOBJMesh(const std::string _fileName, PolygonMesh &_mesh){
     }
 }
 
+void PcMesher::writeOBJMesh(const std::string _fileName, PolygonMesh& _mesh){
+
+    std::cerr << "Exporting OBJ mesh" << std::endl;
+
+    std::ofstream outputFile(_fileName.c_str());
+
+    PointCloud<PointXYZRGBNormalCam> meshCloud;
+    fromPCLPointCloud2 (_mesh.cloud, meshCloud);
+
+    for (unsigned int i = 0; i < meshCloud.points.size(); i++){
+        outputFile << "v " << meshCloud.points[i].x << " " << meshCloud.points[i].y << " " << meshCloud.points[i].z << std::endl;
+    }
+
+
+    // foreach face
+    std::vector<Vertices, std::allocator<Vertices> >::iterator face_it;
+    for (face_it = _mesh.polygons.begin(); face_it != _mesh.polygons.end(); ++face_it) {
+        outputFile << "f " << face_it->vertices[0] + 1 << " " << face_it->vertices[1] + 1 << " " << face_it->vertices[2] + 1 << std::endl;
+    }
+
+
+    outputFile.close();
+
+}
+
+
 void PcMesher::exportIndices(PointIndices& _indices, const std::string _fileName){
 
     std::cerr << "Exporting a txt file with points not included in any plane" << std::endl;

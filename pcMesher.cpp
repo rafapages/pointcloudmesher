@@ -57,6 +57,65 @@ PointCloud<PointXYZRGBNormalCam>::Ptr PcMesher::getPointCloudPtr(unsigned int _i
     return pointClouds_[_index];
 }
 
+Eigen::Vector3f PcMesher::getDimensions(const PointCloud<PointXYZRGBNormalCam>::Ptr &_cloud){
+
+    std::cerr << "Estimating dimensions of point cloud" << std::endl;
+
+    float minx, miny, minz, maxx, maxy, maxz;
+    minx = miny = minz = FLT_MAX;
+    maxx = maxy = maxz = FLT_MIN;
+
+    for (unsigned int i = 0; i < _cloud->points.size(); i++){
+        PointXYZRGBNormalCam current = _cloud->points[i];
+        if (current.x < minx){
+            minx = current.x;
+        }
+        if (current.y < miny){
+            miny = current.y;
+        }
+        if (current.z < minz){
+            minz = current.z;
+        }
+        if (current.x > maxx){
+            maxx = current.x;
+        }
+        if (current.y > maxy){
+            maxy = current.y;
+        }
+        if (current.z > maxz){
+            maxz = current.z;
+        }
+    }
+
+    const float dimx = fabs(maxx - minx);
+    const float dimy = fabs(maxy - miny);
+    const float dimz = fabs(maxz - minz);
+
+    return Eigen::Vector3f(dimx, dimy, dimz);
+
+}
+
+Eigen::Vector3f PcMesher::getDimensions(const unsigned int _index){
+    PointCloud<PointXYZRGBNormalCam>::Ptr pointcloud = pointClouds_[_index];
+    return this->getDimensions(pointcloud);
+}
+
+Eigen::Vector3f PcMesher::getDimensions(const PolygonMesh &_mesh){
+
+    PointCloud<PointXYZRGBNormalCam>::Ptr meshCloud;
+    fromPCLPointCloud2 (_mesh.cloud, *meshCloud);
+
+    Eigen::Vector3f dims = this->getDimensions(meshCloud);
+
+//    PointCloud<PointXYZRGBNormalCam> meshCloud;
+//    fromPCLPointCloud2 (_mesh.cloud, meshCloud);
+//    PointCloud<PointXYZRGBNormalCam>::Ptr meshCloudPtr = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(meshCloud);
+//    Vector dims = this->getDimensions(meshCloudPtr);
+
+    return dims;
+
+}
+
 void PcMesher::removeOutliers(PointCloud<PointXYZRGBNormalCam>::Ptr& _cloud){
 
     StatisticalOutlierRemoval<PointXYZRGBNormalCam> sor;
@@ -136,7 +195,7 @@ void PcMesher::estimateNormals(const unsigned int _index, const float _radius){
     search::KdTree<PointXYZRGBNormalCam>::Ptr tree (new search::KdTree<PointXYZRGBNormalCam> ());
     ne.setSearchMethod (tree);
 
-    // Use all neighbors in a sphere of radius 3cm
+    // Use all neighbors in a sphere of radius <_radius>
     ne.setRadiusSearch (_radius);
 
     // Compute the features

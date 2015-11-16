@@ -87,21 +87,27 @@ int main (int argc, char *argv[]){
         cloud.bundlerReader(namein);
         cloud.readImageList(listname);
         cloud.writeCameraSetupFile(nameout + "_cameras.txt");
-        //    cloud.readCloud(argv[1]);
 
         cloud.writeCloud(nameout + "_input.ply");
 
         // Statistical outlier removal
         cloud.removeAllOutliers();
 
+        // Estimating dimensions
+        Eigen::Vector3f dim = cloud.getDimensions(0);
+        const float scale = cbrt(dim(0) * dim(1) * dim(2));
+        std::cerr << "scale: " << scale << std::endl;
+
         // We first estimate normals to get an initial orientation
-        cloud.estimateAllNormals(0.1);
+//        cloud.estimateAllNormals(0.1);
+        cloud.estimateAllNormals(scale*0.01);
         cloud.writeCloud(nameout + "_sinoutliers.ply");
 
         // Planes are segmented also using their normal info
         cloud.segmentPlanes();
         // Normals are estimated properly now (and their sense corrected)
-        cloud.estimateAllNormals(0.3);
+//        cloud.estimateAllNormals(0.3);
+        cloud.estimateAllNormals(scale*0.03);
         cloud.fixAllNormals();
 
         // "Planar" point clouds are collected into a single point cloud
@@ -120,7 +126,7 @@ int main (int argc, char *argv[]){
 
         PolygonMesh m = cloud.deleteWrongVertices(combinedCloudPtr, first_mesh);
 
-        cloud.assignCam2Mesh(m, combinedCloudPtr, nameout + "_meshcamera.txt");
+//        cloud.assignCam2Mesh(m, combinedCloudPtr, nameout + "_meshcamera.txt");
         PolygonMesh ms = cloud.smoothMeshLaplacian(m);
         PolygonMesh simpleM = cloud.decimateMesh(ms);
 

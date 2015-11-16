@@ -27,6 +27,11 @@ public:
     // Get a Ptr to a cloud
     PointCloud<PointXYZRGBNormalCam>::Ptr getPointCloudPtr(unsigned int _index);
 
+    // Get dimensions of Point Cloud or Mesh
+    Eigen::Vector3f getDimensions(const PointCloud<PointXYZRGBNormalCam>::Ptr& _cloud);
+    Eigen::Vector3f getDimensions(const unsigned int _index);
+    Eigen::Vector3f getDimensions(const PolygonMesh& _mesh);
+
     // Outlier filtering
     void removeOutliers(PointCloud<PointXYZRGBNormalCam>::Ptr& _cloud);
     void removeOutliers(unsigned int _index);

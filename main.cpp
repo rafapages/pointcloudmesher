@@ -96,7 +96,7 @@ int main (int argc, char *argv[]){
         // Estimating dimensions
         Eigen::Vector3f dim = cloud.getDimensions(0);
         const float scale = cbrt(dim(0) * dim(1) * dim(2));
-        std::cerr << "scale: " << scale << std::endl;
+//        std::cerr << "scale: " << scale << std::endl;
 
         // We first estimate normals to get an initial orientation
 //        cloud.estimateAllNormals(0.1);
@@ -155,6 +155,7 @@ int main (int argc, char *argv[]){
             std::cerr << "Usage: " << argv[0] << " -p <pointCloud.ply>" << std::endl;
             return 1;
         }
+
 
         // Reading input parameteres: blunder file and image list
         cloud.readPLYCloud(argv[2]);

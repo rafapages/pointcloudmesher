@@ -102,15 +102,10 @@ Eigen::Vector3f PcMesher::getDimensions(const unsigned int _index){
 
 Eigen::Vector3f PcMesher::getDimensions(const PolygonMesh &_mesh){
 
-    PointCloud<PointXYZRGBNormalCam>::Ptr meshCloud;
-    fromPCLPointCloud2 (_mesh.cloud, *meshCloud);
-
-    Eigen::Vector3f dims = this->getDimensions(meshCloud);
-
-//    PointCloud<PointXYZRGBNormalCam> meshCloud;
-//    fromPCLPointCloud2 (_mesh.cloud, meshCloud);
-//    PointCloud<PointXYZRGBNormalCam>::Ptr meshCloudPtr = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(meshCloud);
-//    Vector dims = this->getDimensions(meshCloudPtr);
+    PointCloud<PointXYZRGBNormalCam> meshCloud;
+    fromPCLPointCloud2 (_mesh.cloud, meshCloud);
+    PointCloud<PointXYZRGBNormalCam>::Ptr meshCloudPtr = boost::make_shared<PointCloud<PointXYZRGBNormalCam> >(meshCloud);
+    Eigen::Vector3f dims = this->getDimensions(meshCloudPtr);
 
     return dims;
 

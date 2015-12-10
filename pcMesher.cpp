@@ -57,6 +57,10 @@ PointCloud<PointXYZRGBNormalCam>::Ptr PcMesher::getPointCloudPtr(unsigned int _i
     return pointClouds_[_index];
 }
 
+void PcMesher::clearPointClouds(){
+    pointClouds_.clear();
+}
+
 Eigen::Vector3f PcMesher::getDimensions(const PointCloud<PointXYZRGBNormalCam>::Ptr &_cloud){
 
     std::cerr << "Estimating dimensions of point cloud" << std::endl;
@@ -133,6 +137,7 @@ void PcMesher::removeOutliers(unsigned int _index){
     sor.setInputCloud(cloud);
     sor.setMeanK(50);
     sor.setStddevMulThresh(1.0);
+//    sor.setStddevMulThresh(0.5);
     sor.filter(*cloud);
 
     // Indices to outliers
@@ -284,7 +289,7 @@ void PcMesher::extractClusters(const unsigned int _index){
 
 }
 
-void PcMesher::segmentPlanes(){
+void PcMesher::segmentPlanes(float _threshold){
 
     std::cerr << "Segmenting planes" << std::endl;
 
@@ -304,7 +309,8 @@ void PcMesher::segmentPlanes(){
     seg.setModelType (SACMODEL_PLANE);
     seg.setMethodType (SAC_RANSAC);
     seg.setMaxIterations (1000);
-    seg.setDistanceThreshold(0.1);
+//    seg.setDistanceThreshold(0.1);
+    seg.setDistanceThreshold(_threshold);
 //    seg.setDistanceThreshold(0.03);
 
 
@@ -351,6 +357,7 @@ void PcMesher::segmentPlanes(){
         // if not enough points are left to determine a plane, we move to the following plane
         bool badplane = false;
         if (inliers->indices.size() < 0.01 * nr_points) {
+//        if (inliers->indices.size() < 0.005 * nr_points) {
             std::cerr << iter << std::endl;
             std::cerr << inliers->indices.size() << "/" << inliersOrignalSize << std::endl;
             iter++;

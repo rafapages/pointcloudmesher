@@ -6,7 +6,7 @@
 #include <boost/make_shared.hpp>
 #include <boost/program_options.hpp>
 
-typedef enum {ALL, POISSON} RunMode;
+typedef enum {ALL, NO_NORMAL, POISSON} RunMode;
 
 int main (int argc, char *argv[]){
 
@@ -21,6 +21,7 @@ int main (int argc, char *argv[]){
         desc.add_options()
                 ("help,h", "Print this help message")
                 ("all,a", "Run the complete system")
+                ("normal,n", "Run the system but loads a poin cloud where normals have already been roughly estimated")
                 ("poisson,p", "Run just the poisson reconstruction given a point cloud")
                 ;
 
@@ -35,8 +36,10 @@ int main (int argc, char *argv[]){
 
 
         // Either complete system or just poisson will run
-
-        if (vm.count("poisson")) {
+        if (vm.count("normal")){
+            std::cerr << "Normals will be loaded from input point cloud" << std::endl;
+            mode = NO_NORMAL;
+        } else if (vm.count("poisson")) {
             std::cerr << "Only poisson reconstruction will now run." << std::endl;
             mode = POISSON;
         } else {
@@ -58,7 +61,9 @@ int main (int argc, char *argv[]){
 
 
     PcMesher cloud;
+    std::string nameout;
 
+    float scale = 0.0;
 
     // MODE = ALL
 
@@ -80,7 +85,7 @@ int main (int argc, char *argv[]){
         std::string listname(argv[index+1]);
 
 
-        std::string nameout = namein.substr(0, namein.size()-4);
+        nameout = namein.substr(0, namein.size()-4);
 
 
         // Reading input parameteres: blunder file and image list
@@ -95,19 +100,56 @@ int main (int argc, char *argv[]){
 
         // Estimating dimensions
         Eigen::Vector3f dim = cloud.getDimensions(0);
-        const float scale = cbrt(dim(0) * dim(1) * dim(2));
-//        std::cerr << "scale: " << scale << std::endl;
+        scale = cbrt(dim(0) * dim(1) * dim(2));
+        std::cerr << "scale: " << scale << std::endl;
 
         // We first estimate normals to get an initial orientation
-//        cloud.estimateAllNormals(0.1);
-        cloud.estimateAllNormals(scale*0.01);
+//        cloud.estimateAllNormals(scale*0.01);
+        cloud.estimateAllNormals(scale*0.03);
         cloud.writeCloud(nameout + "_sinoutliers.ply");
+    }
+
+    // MODE = NO_NORMAL
+
+    if (mode == NO_NORMAL){
+        if (argc != 5){
+            std::cerr << "Wrong number of input paremeters for complete mode" << std::endl;
+            std::cerr << "Usage: " << argv[0] << " -n <bundlerfile.out> <image-list.txt> <pointcloudwithnormals.ply>" << std::endl;
+            return 1;
+        }
+
+        std::string namein(argv[2]);
+        std::string listname(argv[3]);
+        std::string pcname(argv[4]);
+
+        nameout = namein.substr(0, namein.size()-4);
+
+
+        // Reading input parameteres: blunder file and image list
+        cloud.bundlerReader(namein); // Bundler file is read but point cloud info, discarded
+        cloud.readImageList(listname);
+        cloud.writeCameraSetupFile(nameout + "_cameras.txt");
+        cloud.clearPointClouds();
+
+        cloud.readPLYCloud(pcname);
+
+        // Estimating dimensions
+        Eigen::Vector3f dim = cloud.getDimensions(0);
+        scale = cbrt(dim(0) * dim(1) * dim(2));
+        std::cerr << "scale: " << scale << std::endl;
+
+
+    }
+
+    if (mode == ALL || mode == NO_NORMAL){
+
 
         // Planes are segmented also using their normal info
-        cloud.segmentPlanes();
+        cloud.segmentPlanes(scale*0.005);
+//        cloud.segmentPlanes(scale*0.01);
         // Normals are estimated properly now (and their sense corrected)
-//        cloud.estimateAllNormals(0.3);
-        cloud.estimateAllNormals(scale*0.03);
+//        cloud.estimateAllNormals(scale*0.03);
+        cloud.estimateAllNormals(scale*0.01);
         cloud.fixAllNormals();
 
         // "Planar" point clouds are collected into a single point cloud
@@ -156,9 +198,12 @@ int main (int argc, char *argv[]){
             return 1;
         }
 
-
         // Reading input parameteres: blunder file and image list
         cloud.readPLYCloud(argv[2]);
+
+//        // To fix the normals!!
+//        cloud.bundlerReader(argv[3]);
+//        cloud.fixAllNormals();
 
         PolygonMesh first_mesh = cloud.surfaceReconstruction(cloud.getPointCloudPtr(0));
         io::savePLYFile("poisson_v2.ply", first_mesh);
@@ -236,33 +281,5 @@ int main (int argc, char *argv[]){
 
 //    return 0;
 
-//    //---------------------------------------------------------------------------
-//    // Para reconstruir la nube de puntos del skeletonScanner
-//    //---------------------------------------------------------------------------
-
-//    if (argc != 2){
-//        std::cerr << "Wrong number of input parameters!" << std::endl;
-//        std::cerr << "Usage: " << argv[0] << " <inputPointCloud.plu>" << std::endl;
-//        return 0;
-//    }
-
-//    std::string namein(argv[1]);
-//    std::string nameout = namein.substr(0, namein.size()-4);
-
-//    PcMesher cloud;
-//    cloud.readPLYCloud(namein);
-
-//    PointCloud<PointXYZRGBNormalCam>::Ptr pc = cloud.getPointCloudPtr(0);
-//    std::cerr << "Number of points: " << pc->height * pc->width << std::endl;
-
-////    cloud.removeAllOutliers();
-////    cloud.writeCloud(nameout + "_sinoutliers.ply");
-
-//    cloud.estimateAllNormals();
-//    cloud.writeCloud(nameout + "_normals.ply");
-
-
-
-//    return 0;
 
 }

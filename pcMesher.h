@@ -27,6 +27,9 @@ public:
     // Get a Ptr to a cloud
     PointCloud<PointXYZRGBNormalCam>::Ptr getPointCloudPtr(unsigned int _index);
 
+    // Remove pointclouds
+    void clearPointClouds();
+
     // Get dimensions of Point Cloud or Mesh
     Eigen::Vector3f getDimensions(const PointCloud<PointXYZRGBNormalCam>::Ptr& _cloud);
     Eigen::Vector3f getDimensions(const unsigned int _index);
@@ -51,7 +54,7 @@ public:
     void extractClusters(const unsigned int _index);
 
     // Plane segmentation
-    void segmentPlanes();
+    void segmentPlanes(float _threshold);
 
     // Cilinder segmentation
     void segmentCylinders();

@@ -678,7 +678,9 @@ PolygonMesh PcMesher::deleteWrongVertices2(PointCloud<PointXYZRGBNormalCam>::Ptr
 
 
 
-PolygonMesh PcMesher::decimateMesh(const PolygonMesh& _mesh){
+PolygonMesh PcMesher::decimateMesh(const PolygonMesh& _mesh, float _reduction){
+
+    // _reduction goes from 0 to 1
 
     std::cerr << "Decimating mesh" << std::endl;
 
@@ -687,7 +689,8 @@ PolygonMesh PcMesher::decimateMesh(const PolygonMesh& _mesh){
     PolygonMesh outputMesh;
     MeshQuadricDecimationVTK decimator;
     decimator.setInputMesh(meshPtr);
-    decimator.setTargetReductionFactor(0.99f);
+//    decimator.setTargetReductionFactor(0.99f);
+    decimator.setTargetReductionFactor(1 - _reduction);
     decimator.process(outputMesh);
 
     return outputMesh;
@@ -1196,7 +1199,8 @@ void PcMesher::deleteWrongCameras(const std::string _fileName){
             std::getline(cam2del, line);
             char * pEnd;
             int num = strtol(line.c_str(), &pEnd,10);
-            if (num == 0) continue;
+//            if (num == 0) continue;
+            if (line.c_str() == pEnd) continue; // Too check if the result is not a number
             lineNums.push_back(num);
         }
 

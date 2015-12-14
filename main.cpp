@@ -6,7 +6,7 @@
 #include <boost/make_shared.hpp>
 #include <boost/program_options.hpp>
 
-typedef enum {ALL, NO_NORMAL, POISSON} RunMode;
+typedef enum {ALL, NO_NORMAL, POISSON, FIXLIST, MESH} RunMode;
 
 int main (int argc, char *argv[]){
 
@@ -23,6 +23,8 @@ int main (int argc, char *argv[]){
                 ("all,a", "Run the complete system")
                 ("normal,n", "Run the system but loads a poin cloud where normals have already been roughly estimated")
                 ("poisson,p", "Run just the poisson reconstruction given a point cloud")
+                ("meshtoclean,m", "Loads a mesh and a point cloud and perform operations on the mesh")
+                ("fixlist,l", "Fix the image list given another list with cameras with wrong texture")
                 ;
 
         po::variables_map vm;
@@ -39,9 +41,15 @@ int main (int argc, char *argv[]){
         if (vm.count("normal")){
             std::cerr << "Normals will be loaded from input point cloud" << std::endl;
             mode = NO_NORMAL;
-        } else if (vm.count("poisson")) {
+        } else if (vm.count("poisson")){
             std::cerr << "Only poisson reconstruction will now run." << std::endl;
             mode = POISSON;
+        } else if (vm.count("meshtoclean")){
+            std::cerr << "Mesh will be cleaned, smoothed and decimated" << std::endl;
+            mode = MESH;
+        } else if (vm.count("fixlist")){
+            std::cerr << "Fixing the image list..." << std::endl;
+            mode = FIXLIST;
         } else {
             std::cerr << "Complete system will now run" << std::endl;
             mode = ALL;
@@ -65,7 +73,9 @@ int main (int argc, char *argv[]){
 
     float scale = 0.0;
 
-    // MODE = ALL
+    //------------------------------------------------------------------------
+    // Complete system
+    //------------------------------------------------------------------------
 
     if (mode == ALL){
 
@@ -105,15 +115,17 @@ int main (int argc, char *argv[]){
 
         // We first estimate normals to get an initial orientation
 //        cloud.estimateAllNormals(scale*0.01);
-        cloud.estimateAllNormals(scale*0.03);
+        cloud.estimateAllNormals(scale*0.005);
         cloud.writeCloud(nameout + "_sinoutliers.ply");
     }
 
-    // MODE = NO_NORMAL
+    //------------------------------------------------------------------------
+    // In this case normals are not calculated because they are preloaded
+    //------------------------------------------------------------------------
 
     if (mode == NO_NORMAL){
         if (argc != 5){
-            std::cerr << "Wrong number of input paremeters for complete mode" << std::endl;
+            std::cerr << "Wrong number of input paremeters for no-normal mode" << std::endl;
             std::cerr << "Usage: " << argv[0] << " -n <bundlerfile.out> <image-list.txt> <pointcloudwithnormals.ply>" << std::endl;
             return 1;
         }
@@ -145,10 +157,10 @@ int main (int argc, char *argv[]){
 
 
         // Planes are segmented also using their normal info
-        cloud.segmentPlanes(scale*0.005);
-//        cloud.segmentPlanes(scale*0.01);
+//        cloud.segmentPlanes(scale*0.005);
+        cloud.segmentPlanes(scale*0.001);
         // Normals are estimated properly now (and their sense corrected)
-//        cloud.estimateAllNormals(scale*0.03);
+//        cloud.estimateAllNormals(scale*0.01);
         cloud.estimateAllNormals(scale*0.01);
         cloud.fixAllNormals();
 
@@ -170,7 +182,7 @@ int main (int argc, char *argv[]){
 
 //        cloud.assignCam2Mesh(m, combinedCloudPtr, nameout + "_meshcamera.txt");
         PolygonMesh ms = cloud.smoothMeshLaplacian(m);
-        PolygonMesh simpleM = cloud.decimateMesh(ms);
+        PolygonMesh simpleM = cloud.decimateMesh(ms, 0.01);
 
         io::savePLYFile(nameout + "_poisson_limpio.ply", m);
         io::savePLYFile(nameout + "_poisson_limpio_smooth.ply", ms);
@@ -209,15 +221,78 @@ int main (int argc, char *argv[]){
         io::savePLYFile("poisson_v2.ply", first_mesh);
 
         PolygonMesh m = cloud.deleteWrongVertices(cloud.getPointCloudPtr(0), first_mesh);
+        io::savePLYFile("poisson_clean.ply", m);
+
         PolygonMesh ms = cloud.smoothMeshLaplacian(m);
+        PolygonMesh mss = cloud.decimateMesh(ms, 0.1);
 
         io::savePLYFile("poisson_clean_smooth.ply", ms);
-        cloud.writeOBJMesh("poisson_clean_smooth.obj", ms);
+
+        io::savePLYFile("poisson_clean_smooth_decim.ply", mss);
+        cloud.writeOBJMesh("poisson_clean_smooth_decim.obj", mss);
 
     }
 
 
+    //---------------------------------------------------------------------------
+    // This one loads a mesh and cleans, smooths and decimates it
+    //---------------------------------------------------------------------------
+
+    if (mode == MESH){
+
+
+        if (argc != 4){
+            std::cerr << "Wrong number of input paremeters for mesh cleaning mode" << std::endl;
+            std::cerr << "Usage: " << argv[0] << " -m <meshtoclean.ply> <pointcloudreference.ply>" << std::endl;
+            return 1;
+        }
+
+        PcMesher cloud;
+        PolygonMesh mesh;
+
+        cloud.readPLYMesh(argv[2], mesh);
+        cloud.readPLYCloud(argv[3]);
+
+        PolygonMesh m = cloud.deleteWrongVertices(cloud.getPointCloudPtr(0), mesh);
+
+        io::savePLYFile("mesh_clean.ply", m);
+
+        PolygonMesh ms = cloud.smoothMeshLaplacian(m);
+        PolygonMesh mss = cloud.decimateMesh(ms, 0.1);
+
+        io::savePLYFile("mesh_clean_smooth.ply", ms);
+
+        io::savePLYFile("mesh_clean_smooth_decim.ply", mss);
+        cloud.writeOBJMesh("mesh_clean_smooth_decim.obj", mss);
+
+
+    }
+
+    //---------------------------------------------------------------------------
+    // To fix the image list
+    //---------------------------------------------------------------------------
+
+    if (mode == FIXLIST){
+
+        if (argc != 5){
+            std::cerr << "Wrong number of input paremeters for fix-list mode" << std::endl;
+            std::cerr << "Usage: " << argv[0] << " -l <bundlerfile.out> <image-list.txt> <wrongcameras.txt>" << std::endl;
+            return 1;
+        }
+
+
+        PcMesher cloud;
+
+        cloud.bundlerReader(argv[2]);
+        cloud.readImageList(argv[3]);
+        cloud.deleteWrongCameras(argv[4]);
+        cloud.writeCameraSetupFile("clean_camera_setup.txt");
+
+    }
+
     return 0;
+
+
 
 
 
@@ -245,41 +320,5 @@ int main (int argc, char *argv[]){
 //    cloud.assignCam2Mesh(mesh, cloud.getPointCloudPtr(0), nameout);
 
 //    return 0;
-
-//    //---------------------------------------------------------------------------
-//    // Y otro...
-//    //---------------------------------------------------------------------------
-
-//    PcMesher cloud;
-//    PolygonMesh mesh;
-
-//    cloud.readPLYCloud(argv[1]);
-////    cloud.readPLYMesh(argv[2], mesh);
-
-//    PolygonMesh first_mesh = cloud.surfaceReconstruction(cloud.getPointCloudPtr(0));
-//    io::savePLYFile("test_poisson.ply", first_mesh);
-////    PolygonMesh m = cloud.deleteWrongVertices2(cloud.getPointCloudPtr(0), mesh);
-//    PolygonMesh m = cloud.deleteWrongVertices2(cloud.getPointCloudPtr(0), first_mesh);
-
-//    PolygonMesh simpleM = cloud.decimateMesh(m);
-
-//    io::savePLYFile("test_poisson_limpio.ply", m);
-//    io::savePLYFile("test_poisson_limpio_decimated.ply", simpleM);
-
-//    return 0;
-
-//    //---------------------------------------------------------------------------
-//    // Para arreglar la lista de imágenes
-//    //---------------------------------------------------------------------------
-
-//    PcMesher cloud;
-
-//    cloud.bundlerReader(argv[1]);
-//    cloud.readImageList(argv[2]);
-//    cloud.deleteWrongCameras(argv[3]);
-//    cloud.writeCameraSetupFile("clean_camera_setup.txt");
-
-//    return 0;
-
 
 }

@@ -14,15 +14,15 @@ Camera::~Camera(){
 
 }
 
-float Camera::getFocalLength(){
+float Camera::getFocalLength() const{
     return f_;
 }
 
-Eigen::Matrix3f Camera::getRotationMatrix(){
+const Eigen::Matrix3f& Camera::getRotationMatrix() const{
     return R_;
 }
 
-Eigen::Vector3f Camera::getTranslationVector(){
+const Eigen::Vector3f &Camera::getTranslationVector() const{
     return t_;
 }
 

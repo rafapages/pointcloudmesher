@@ -13,9 +13,9 @@ public:
     Camera();
     ~Camera();
 
-    float getFocalLength();
-    Eigen::Matrix3f getRotationMatrix();
-    Eigen::Vector3f getTranslationVector();
+    float getFocalLength() const;
+    const Eigen::Matrix3f& getRotationMatrix() const;
+    const Eigen::Vector3f& getTranslationVector() const;
 
     void setFocalLength(const float _f);
     void setDistortionCoefficients(const float _k1, const float _k2);

@@ -251,6 +251,15 @@ int main (int argc, char *argv[]){
         PolygonMesh mesh;
 
         cloud.readPLYMesh(argv[2], mesh);
+
+        // TEST
+        bool open = cloud.isMeshOpen(mesh);
+        if (open){
+            std::cerr << "Abierta" << std::endl;
+        } else {
+            std::cerr << "Cerrada" << std::endl;
+        }
+
         cloud.readPLYCloud(argv[3]);
 
         PolygonMesh m = cloud.deleteWrongVertices(cloud.getPointCloudPtr(0), mesh);

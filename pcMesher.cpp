@@ -23,11 +23,18 @@
 #include <pcl/surface/vtk_smoothing/vtk_mesh_quadric_decimation.h>
 #include <pcl/surface/vtk_smoothing/vtk_mesh_smoothing_laplacian.h>
 
+#include <pcl/geometry/polygon_mesh.h>
+#include <pcl/geometry/mesh_conversion.h>
+
 #include <FreeImagePlus.h>
 
 #include <stdlib.h>     /* strtol */
 
 #include "pcMesher.h"
+
+
+
+typedef pcl::geometry::PolygonMesh <pcl::geometry::DefaultMeshTraits <PointXYZRGBNormalCam> > Mesh;
 
 PcMesher::PcMesher(){
 
@@ -499,7 +506,7 @@ PolygonMesh PcMesher::surfaceReconstruction(PointCloud<PointXYZRGBNormalCam>::Pt
 
 
 
-PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh _inputMesh){
+PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh& _inputMesh){
 
     std::cerr << "Cleaning the Poisson mesh" << std::endl;
 
@@ -691,6 +698,28 @@ PolygonMesh PcMesher::smoothMeshLaplacian(const PolygonMesh &_mesh){
     return outputMesh;
 
 }
+
+
+bool PcMesher::isMeshOpen(const PolygonMesh& _inputMesh) const {
+
+    Mesh m;
+
+    geometry::toHalfEdgeMesh(_inputMesh, m); // IMPORTANT!! this is how the conversion is done!
+
+    //std::cerr << "ntri: " << m.sizeFaces() << ". nvtx: " << m.sizeVertices() << endl;
+
+    bool open = false;
+    for (unsigned int i = 0;  i < m.sizeVertices(); i++){
+        if (m.isBoundary(m.getVertexIndex(m.getVertexDataCloud()[i]))){
+            open = true;
+        }
+    }
+
+
+    // CUIDADO
+    return open;
+}
+
 
 void PcMesher::drawCameras(){
 

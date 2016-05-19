@@ -65,10 +65,13 @@ public:
     void allSurfaceReconstruction();
 
     // Mesh refining
-    PolygonMesh deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh _inputMesh);
+    PolygonMesh deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh& _inputMesh);
     PolygonMesh deleteWrongVertices2(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh _inputMesh);
     PolygonMesh decimateMesh(const PolygonMesh& _mesh, float _reduction);
     PolygonMesh smoothMeshLaplacian(const PolygonMesh& _mesh);
+
+    // Mesh test operations
+    bool isMeshOpen(const PolygonMesh& _inputMesh) const;
 
     // Adding every camera to the cloud to see if their position is correct
     void drawCameras();

@@ -6,9 +6,14 @@
 #include <stdio.h>
 
 #include <pcl/surface/poisson.h>
+#include <pcl/geometry/polygon_mesh.h>
+
 
 #include "pointXYZRGBNormalCam.h"
 #include "camera.h"
+
+
+typedef pcl::geometry::PolygonMesh <pcl::geometry::DefaultMeshTraits <PointXYZRGBNormalCam> > Mesh;
 
 
 class PcMesher{
@@ -71,7 +76,7 @@ public:
     PolygonMesh smoothMeshLaplacian(const PolygonMesh& _mesh);
 
     // Mesh test operations
-    bool isMeshOpen(const PolygonMesh& _inputMesh) const;
+    bool isMeshOpen(const Mesh& _inputMesh) const;
 
     // Adding every camera to the cloud to see if their position is correct
     void drawCameras();

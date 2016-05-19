@@ -2,6 +2,8 @@
 
 #include <pcl/io/ply_io.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/geometry/mesh_conversion.h>
+
 
 #include <boost/make_shared.hpp>
 #include <boost/program_options.hpp>
@@ -252,13 +254,21 @@ int main (int argc, char *argv[]){
 
         cloud.readPLYMesh(argv[2], mesh);
 
-        // TEST
-        bool open = cloud.isMeshOpen(mesh);
+        // TEST-----------------------
+        Mesh polyMesh;
+
+        pcl::geometry::toHalfEdgeMesh(mesh, polyMesh); // IMPORTANT!! this is how the conversion is done!
+
+        bool open = cloud.isMeshOpen(polyMesh);
         if (open){
             std::cerr << "Abierta" << std::endl;
         } else {
             std::cerr << "Cerrada" << std::endl;
         }
+
+
+
+        // /TEST-----------------------
 
         cloud.readPLYCloud(argv[3]);
 

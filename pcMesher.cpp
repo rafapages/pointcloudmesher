@@ -497,27 +497,6 @@ PolygonMesh PcMesher::surfaceReconstruction(PointCloud<PointXYZRGBNormalCam>::Pt
 
 }
 
-PolygonMesh PcMesher::greedyReconstruction(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud){
-
-    PolygonMesh triangles;
-    GreedyProjectionTriangulation<PointXYZRGBNormalCam> gp3;
-
-    search::KdTree<PointXYZRGBNormalCam>::Ptr tree (new search::KdTree<PointXYZRGBNormalCam> ());
-
-    gp3.setSearchRadius (0.006); // Kinect’s points are typically closer t
-    gp3.setMu (2.5);
-    gp3.setMaximumNearestNeighbors (50);
-    gp3.setMaximumSurfaceAngle(M_PI/4); // 45 degrees
-    gp3.setMinimumAngle(M_PI/18); // 10 degrees
-    gp3.setMaximumAngle(2*M_PI/3); // 120 degrees
-    gp3.setInputCloud (_cloud);
-    gp3.setSearchMethod (tree);
-    gp3.reconstruct (triangles);
-
-    return triangles;
-
-}
-
 
 
 PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh _inputMesh){

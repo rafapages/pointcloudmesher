@@ -64,8 +64,6 @@ public:
     PolygonMesh surfaceReconstruction(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud);
     void allSurfaceReconstruction();
 
-    PolygonMesh greedyReconstruction(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud);
-
     // Mesh refining
     PolygonMesh deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh _inputMesh);
     PolygonMesh deleteWrongVertices2(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh _inputMesh);

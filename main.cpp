@@ -266,8 +266,14 @@ int main (int argc, char *argv[]){
             std::cerr << "Cerrada" << std::endl;
         }
 
+        cloud.openHole(polyMesh);
+        open = cloud.isMeshOpen(polyMesh);
 
-
+        if (open){
+            std::cerr << "Abierta" << std::endl;
+        } else {
+            std::cerr << "Cerrada" << std::endl;
+        }
         // /TEST-----------------------
 
         cloud.readPLYCloud(argv[3]);

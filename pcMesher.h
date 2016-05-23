@@ -71,12 +71,12 @@ public:
 
     // Mesh refining
     PolygonMesh deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh& _inputMesh);
-    PolygonMesh deleteWrongVertices2(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh _inputMesh);
     PolygonMesh decimateMesh(const PolygonMesh& _mesh, float _reduction);
     PolygonMesh smoothMeshLaplacian(const PolygonMesh& _mesh);
 
-    // Mesh test operations
+    // Mesh operations
     bool isMeshOpen(const Mesh& _inputMesh) const;
+    void openHole(Mesh& _inputMesh) const;
 
     // Adding every camera to the cloud to see if their position is correct
     void drawCameras();

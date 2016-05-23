@@ -24,6 +24,7 @@
 #include <pcl/surface/vtk_smoothing/vtk_mesh_smoothing_laplacian.h>
 
 #include <pcl/geometry/mesh_conversion.h>
+#include <pcl/geometry/mesh_io.h>
 
 #include <FreeImagePlus.h>
 
@@ -599,69 +600,6 @@ PolygonMesh PcMesher::deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr 
 
 }
 
-PolygonMesh PcMesher::deleteWrongVertices2(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh _inputMesh){
-
-    std::cerr << "Cleaning the Poisson mesh" << std::endl;
-
-    // This value needs to be automatized
-
-    KdTreeFLANN<PointXYZRGBNormalCam> kdtree;
-    kdtree.setInputCloud(_cloud);
-
-    // Some data for the output mesh:
-    // vector for storing valid polygons
-    std::vector<Vertices> validFaces;
-    // PointCloud instead of PCLPointCloud2
-    PointCloud<PointXYZRGBNormalCam> meshCloud;
-    fromPCLPointCloud2 (_inputMesh.cloud, meshCloud);
-
-    // foreach face
-    std::vector<Vertices, std::allocator<Vertices> >::iterator face_it; // por qué el allocator?
-    for (face_it = _inputMesh.polygons.begin(); face_it != _inputMesh.polygons.end(); ++face_it) {
-
-        bool isInside = true;
-
-        std::vector<int> pointIdxRadiusSearch;
-        std::vector<float> pointRadiusSquaredDistance;
-
-        float radius = 0.3;
-
-        for (unsigned int i = 0; i < 3; i++){
-
-            PointXYZRGBNormalCam searchPoint = meshCloud.points[face_it->vertices[i]];
-
-            if (kdtree.radiusSearch(searchPoint, radius, pointIdxRadiusSearch, pointRadiusSquaredDistance) <= 0){
-                isInside = false;
-                break;
-
-            }
-
-        }
-
-        if (isInside) validFaces.push_back(*face_it);
-    }
-
-
-    // Write output polygon mesh
-    PolygonMesh outputMesh;
-    // Same point cloud as the input mesh
-    outputMesh.cloud = _inputMesh.cloud;
-    // Only the valid faces
-    outputMesh.polygons.clear();
-    outputMesh.polygons.insert(outputMesh.polygons.begin(), validFaces.begin(), validFaces.end());
-
-    // Here we delete unused vertices
-    PolygonMesh finalOutputMesh;
-    surface::SimplificationRemoveUnusedVertices cleaner;
-    cleaner.simplify(outputMesh, finalOutputMesh);
-
-    return finalOutputMesh;
-
-
-}
-
-
-
 PolygonMesh PcMesher::decimateMesh(const PolygonMesh& _mesh, float _reduction){
 
     // _reduction goes from 0 to 1
@@ -705,10 +643,53 @@ bool PcMesher::isMeshOpen(const Mesh& _inputMesh) const {
     for (unsigned int i = 0;  i < _inputMesh.sizeVertices(); i++){
         if (_inputMesh.isBoundary(Mesh::VertexIndex(i))){
             open = true;
+            break;
         }
     }
 
     return open;
+}
+
+void PcMesher::openHole(Mesh &_inputMesh) const {
+
+    if (isMeshOpen(_inputMesh)){
+        std::cerr << "Mesh is already open!" << std::endl;
+        return;
+    }
+
+    float maxArea = FLT_MIN;
+    Mesh::FaceIndex bigface;
+    for (unsigned int i = 0; i < _inputMesh.sizeFaces(); i++){
+        Mesh::FaceIndex fidx = Mesh::FaceIndex(i);
+
+        Mesh::VertexAroundFaceCirculator        circ = _inputMesh.getVertexAroundFaceCirculator(fidx);
+        const Mesh::VertexAroundFaceCirculator  circ_end = circ;
+
+        std::vector<Eigen::Vector3f> vertices;
+        do {
+            const PointXYZRGBNormalCam current = _inputMesh.getVertexDataCloud()[circ.getTargetIndex().get()];
+            vertices.push_back(current.getArray3fMap());
+        } while (++circ != circ_end);
+
+        Eigen::Vector3f v1, v2;
+        v1 = vertices[1]-vertices[0];
+        v2 = vertices[2]-vertices[0];
+
+        Eigen::Vector3f areav = v1.cross(v2);
+        float area = areav.norm();
+
+        if (area > maxArea){
+            maxArea = area;
+            bigface = fidx;
+        }
+    }
+
+    _inputMesh.deleteFace(bigface);
+    _inputMesh.cleanUp();
+
+//    pcl::PolygonMesh out;
+//    pcl::geometry::toFaceVertexMesh(_inputMesh, out);
+//    io::savePLYFile("prueba3.ply", out);
 }
 
 

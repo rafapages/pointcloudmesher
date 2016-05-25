@@ -721,7 +721,7 @@ void PcMesher::cleanOpenMesh(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, Mesh 
     }
 
     // Estimate the optimal search radius
-    int radius = 1;
+    int radius = 1; // for the particular example we are analyzing
 
 
 
@@ -729,17 +729,44 @@ void PcMesher::cleanOpenMesh(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, Mesh 
 
     bool far = true;
     int it = 0;
+    std::set<Mesh::HalfEdgeIndex> he_dictionary;
+
     while (far){
         far = false;
+
 
         for (unsigned int i = 0; i < boundary.size(); i++){
             Mesh::HalfEdgeIndices b = boundary[i];
             for (unsigned int j = 0; j < b.size(); j++){
-                Mesh::HalfEdgeIndex hei = b[j];
-                PointXYZRGBNormalCam current = _inputMesh.getVertexDataCloud()[_inputMesh.getOriginatingVertexIndex(hei).get()];
+                const Mesh::HalfEdgeIndex hei = b[j];
+
+                if (he_dictionary.find(hei) != he_dictionary.end()){
+                    continue;
+                } else {
+                    he_dictionary.insert(hei);
+                }
+
+                std::cerr << hei << std::endl;
+                const Mesh::VertexIndex vei = _inputMesh.getOriginatingVertexIndex(hei);
+                const PointXYZRGBNormalCam current = _inputMesh.getVertexDataCloud()[vei.get()];
                 const Mesh::FaceIndex face = _inputMesh.getOppositeFaceIndex(hei);
                 std::cerr << i << "/" << j << std::endl;
                 if (!isPointCloseToPointCloud(current, _cloud, radius) && face.isValid()){
+                    // We remove all faces containing the current vertex
+                    Mesh::FaceAroundVertexCirculator fav = _inputMesh.getFaceAroundVertexCirculator(_inputMesh.getOriginatingVertexIndex(hei));
+                    const Mesh::FaceAroundVertexCirculator fav_end = fav;
+                    std::vector<Mesh::FaceIndex> toDelete;
+                    do {
+                        Mesh::FaceIndex fav_face = fav.getTargetIndex();
+                        toDelete.push_back(fav_face);
+                    } while (++fav != fav_end);
+
+                    for (unsigned int j = 0; j < toDelete.size(); j++){
+                        if (toDelete[j].isValid()){
+                            _inputMesh.deleteFace(toDelete[j]);
+                        }
+                    }
+
                     _inputMesh.deleteFace(face);
                     far = true;
                 }
@@ -776,7 +803,7 @@ void PcMesher::cleanOpenMesh(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, Mesh 
         }
 
 
-        // TEST: just to see the effect
+        // TEST: just to see the effect ------------
         for (unsigned int i = 0; i < nBounds.size(); i++){
             std::cerr << nBounds[i] << " ";
         }
@@ -785,6 +812,7 @@ void PcMesher::cleanOpenMesh(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, Mesh 
         for (unsigned int i = 0; i < boundary.size(); i++){
             std::cerr << "Part " << i << " has " << boundary[i].size() << " boundary helfedges" << std::endl;
         }
+
         it++;
         pcl::PolygonMesh test;
         pcl::geometry::toFaceVertexMesh(_inputMesh, test);
@@ -792,7 +820,7 @@ void PcMesher::cleanOpenMesh(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, Mesh 
         ss << it;
         ss << ".ply";
         io::savePLYFile(ss.str().c_str(),  test);
-        //
+        // ----------------------------------------
 
     }
 

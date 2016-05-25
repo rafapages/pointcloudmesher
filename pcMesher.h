@@ -69,14 +69,16 @@ public:
     PolygonMesh surfaceReconstruction(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud);
     void allSurfaceReconstruction();
 
-    // Mesh refining
-    PolygonMesh deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh& _inputMesh);
-    PolygonMesh decimateMesh(const PolygonMesh& _mesh, float _reduction);
-    PolygonMesh smoothMeshLaplacian(const PolygonMesh& _mesh);
-
     // Mesh operations
     bool isMeshOpen(const Mesh& _inputMesh) const;
     void openHole(Mesh& _inputMesh) const;
+
+    // Mesh refining
+    void cleanOpenMesh(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, Mesh& _inputMesh) const;
+    PolygonMesh deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh& _inputMesh);   
+    PolygonMesh decimateMesh(const PolygonMesh& _mesh, float _reduction);
+    PolygonMesh smoothMeshLaplacian(const PolygonMesh& _mesh);
+
 
     // Adding every camera to the cloud to see if their position is correct
     void drawCameras();
@@ -112,6 +114,8 @@ public:
     void deleteWrongCameras(const std::string _fileName);
 
 private:
+
+    bool isPointCloseToPointCloud(const PointXYZRGBNormalCam& _point, const PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, int _radius) const;
 
     void removeOutliersFromCamPerVtx(PointIndices& _indices);
 

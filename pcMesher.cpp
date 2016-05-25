@@ -25,6 +25,9 @@
 
 #include <pcl/geometry/mesh_conversion.h>
 #include <pcl/geometry/mesh_io.h>
+#include <pcl/geometry/polygon_mesh.h>
+#include <pcl/geometry/get_boundary.h>
+
 
 #include <FreeImagePlus.h>
 
@@ -687,11 +690,113 @@ void PcMesher::openHole(Mesh &_inputMesh) const {
     _inputMesh.deleteFace(bigface);
     _inputMesh.cleanUp();
 
-//    pcl::PolygonMesh out;
-//    pcl::geometry::toFaceVertexMesh(_inputMesh, out);
-//    io::savePLYFile("prueba3.ply", out);
+    pcl::PolygonMesh out;
+    pcl::geometry::toFaceVertexMesh(_inputMesh, out);
+    io::savePLYFile("prueba3.ply", out);
+
 }
 
+
+void PcMesher::cleanOpenMesh(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, Mesh &_inputMesh) const {
+
+    if (!isMeshOpen(_inputMesh)){
+        std::cerr << "This mesh is not open!" << std::endl;
+        return;
+    }
+
+    // we acquire a set of boundary halfedges
+    std::vector<Mesh::HalfEdgeIndices> boundary;
+    pcl::geometry::getBoundBoundaryHalfEdges(_inputMesh, boundary);
+
+    for (unsigned int i = 0; i < boundary.size(); i++){
+        Mesh::HalfEdgeIndices b = boundary[i];
+        std::cerr << "Part " << i << " has " << b.size() << " boundary helfedges" << std::endl;
+    }
+
+    // Save the original boundary sizes
+    std::vector<int> nBounds;
+    int nParts = boundary.size();
+    for (unsigned int i = 0; i < boundary.size(); i++){
+        nBounds.push_back(boundary[i].size());
+    }
+
+    // Estimate the optimal search radius
+    int radius = 1;
+
+
+
+    // Search
+
+    bool far = true;
+    int it = 0;
+    while (far){
+        far = false;
+
+        for (unsigned int i = 0; i < boundary.size(); i++){
+            Mesh::HalfEdgeIndices b = boundary[i];
+            for (unsigned int j = 0; j < b.size(); j++){
+                Mesh::HalfEdgeIndex hei = b[j];
+                PointXYZRGBNormalCam current = _inputMesh.getVertexDataCloud()[_inputMesh.getOriginatingVertexIndex(hei).get()];
+                const Mesh::FaceIndex face = _inputMesh.getOppositeFaceIndex(hei);
+                std::cerr << i << "/" << j << std::endl;
+                if (!isPointCloseToPointCloud(current, _cloud, radius) && face.isValid()){
+                    _inputMesh.deleteFace(face);
+                    far = true;
+                }
+            }
+        }
+
+
+        _inputMesh.cleanUp();
+        boundary.clear();
+        pcl::geometry::getBoundBoundaryHalfEdges(_inputMesh, boundary);
+
+        // To avoid extra calculations, if a boundary has not changed, it is not
+        // iterated again. We keep track of the number of halfedges in each iteration,
+        // so if this number hasn't changed, we don't analyze the boundary again.
+        //
+        if (nParts != boundary.size()){
+            // Update nBounds and nParts
+            nParts = boundary.size();
+            for (unsigned int i = 0; i < boundary.size(); i++){
+                nBounds.push_back(boundary[i].size());
+            }
+        } else {
+            std::vector<Mesh::HalfEdgeIndices>::iterator itt = boundary.end()-1;
+            for (int i = nParts-1; i >= 0; i--){ // starting from the end helps optimizing deletion
+                if (nBounds[i] == boundary[i].size()){
+                    boundary.erase(itt);
+                } else {
+                    // The value in nBounds is updated
+                    nBounds[i] = boundary[i].size();
+                }
+                if (itt != boundary.begin()) // just in case...
+                    itt--;
+            }
+        }
+
+
+        // TEST: just to see the effect
+        for (unsigned int i = 0; i < nBounds.size(); i++){
+            std::cerr << nBounds[i] << " ";
+        }
+        std::cerr << "\n";
+
+        for (unsigned int i = 0; i < boundary.size(); i++){
+            std::cerr << "Part " << i << " has " << boundary[i].size() << " boundary helfedges" << std::endl;
+        }
+        it++;
+        pcl::PolygonMesh test;
+        pcl::geometry::toFaceVertexMesh(_inputMesh, test);
+        std::stringstream ss;
+        ss << it;
+        ss << ".ply";
+        io::savePLYFile(ss.str().c_str(),  test);
+        //
+
+    }
+
+}
 
 void PcMesher::drawCameras(){
 
@@ -1226,6 +1331,23 @@ void PcMesher::removeOutliersFromCamPerVtx(PointIndices &_indices){
     // std::remove efficiently removes every entry where there is an empty vector
     camPerVtx_.erase(std::remove(camPerVtx_.begin(), camPerVtx_.end(), std::vector<int>(0)), camPerVtx_.end());
 
+}
+
+
+bool PcMesher::isPointCloseToPointCloud(const PointXYZRGBNormalCam &_point, const PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, int _radius) const {
+
+
+    KdTreeFLANN<PointXYZRGBNormalCam> kdtree;
+    kdtree.setInputCloud(_cloud);
+
+    std::vector<int> pointIdx;
+    std::vector<float> pointSquaredDistance;
+
+    if (kdtree.radiusSearch(_point, _radius, pointIdx, pointSquaredDistance) > 0){
+        return true;
+    } else {
+        return false;
+    }
 }
 
 

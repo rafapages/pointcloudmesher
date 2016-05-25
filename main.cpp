@@ -253,6 +253,7 @@ int main (int argc, char *argv[]){
         PolygonMesh mesh;
 
         cloud.readPLYMesh(argv[2], mesh);
+        cloud.readPLYCloud(argv[3]);
 
         // TEST-----------------------
         Mesh polyMesh;
@@ -274,9 +275,17 @@ int main (int argc, char *argv[]){
         } else {
             std::cerr << "Cerrada" << std::endl;
         }
+
+        cloud.cleanOpenMesh(cloud.getPointCloudPtr(0), polyMesh);
+
+        PolygonMesh outtest;
+        pcl::geometry::toFaceVertexMesh(polyMesh, outtest);
+
+        io::savePLYFile("TEST_LIMPIO.ply", outtest);
+
         // /TEST-----------------------
 
-        cloud.readPLYCloud(argv[3]);
+
 
         PolygonMesh m = cloud.deleteWrongVertices(cloud.getPointCloudPtr(0), mesh);
 

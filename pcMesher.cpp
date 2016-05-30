@@ -54,11 +54,11 @@ PcMesher::~PcMesher(){
 
 }
 
-unsigned int PcMesher::getNClouds(){
+unsigned int PcMesher::getNClouds() const {
     return nClouds_;
 }
 
-std::vector<std::vector<int> > PcMesher::getCamPerVtx(){
+std::vector<std::vector<int> > PcMesher::getCamPerVtx() const {
     return camPerVtx_;
 }
 
@@ -638,6 +638,89 @@ PolygonMesh PcMesher::smoothMeshLaplacian(const PolygonMesh &_mesh){
 
 }
 
+void PcMesher::detectLargestComponent(Mesh &_inputMesh) const {
+
+    std::vector<bool> visited(_inputMesh.sizeVertices(), false);
+    std::vector<std::vector<Mesh::VertexIndex> > components;
+
+    unsigned int nComponents = 0;
+    Mesh::VertexIndex vi;
+
+    while (true){
+
+        //find an unvisited vertex
+        bool found = false;
+        for (unsigned int i = 0; i < _inputMesh.sizeVertices(); i++){
+            if(!visited[i]){
+                found = true;
+                visited[i] = true;
+                vi = Mesh::VertexIndex(i);
+                break;
+            }
+        }
+
+        //if none was found -> finished
+        if (!found) break;
+        nComponents++;
+
+        std::vector<Mesh::VertexIndex> vindices;
+        std::vector<Mesh::VertexIndex> componentIndices;
+        vindices.push_back(vi);
+
+        while(vindices.size() > 0){
+            Mesh::VertexIndex current = vindices.back();
+            vindices.pop_back();
+
+            Mesh::VertexAroundVertexCirculator vac = _inputMesh.getVertexAroundVertexCirculator(current);
+            const Mesh::VertexAroundVertexCirculator vac_end = vac;
+
+            do {
+                if (!visited[vac.getTargetIndex().get()]){
+                    visited[vac.getTargetIndex().get()] = true;
+                    vindices.push_back(vac.getTargetIndex());
+                    componentIndices.push_back(vac.getTargetIndex());
+                }
+
+            } while (++vac != vac_end);
+
+        }
+
+        components.push_back(componentIndices);
+
+    }
+
+    std::cerr << "Number of mesh components: " << nComponents << std::endl;
+    std::cerr << "Number of mesh components2: " << components.size() << std::endl;
+
+    // In case there is more than one component, we just keep the largest
+    if (components.size() != 1){
+
+        int maxIndex = -1;
+        unsigned int maxNumber = 0;
+        for (unsigned int i = 0; i < components.size(); i++){
+            if (components[i].size() > maxNumber){
+                maxIndex = i;
+                maxNumber = components[i].size();
+            }
+        }
+        std::cerr << "Largest component is number " << maxIndex << " with " << maxNumber << " elements" << std::endl;
+
+        for (unsigned int i = 0; i < components.size(); i++){
+            // Vertices which don't belong to largest component are deleted
+            if (i != maxIndex){
+                const std::vector<Mesh::VertexIndex> curr_comp = components[i];
+                for (unsigned int j = 0; j < curr_comp.size(); j++){
+                    const Mesh::VertexIndex curr_vi = curr_comp[j];
+                    _inputMesh.deleteVertex(curr_vi);
+                }
+            }
+        }
+    }
+
+    _inputMesh.cleanUp();
+
+}
+
 
 bool PcMesher::isMeshOpen(const Mesh& _inputMesh) const {
 
@@ -721,7 +804,7 @@ void PcMesher::cleanOpenMesh(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, Mesh 
     }
 
     // Estimate the optimal search radius
-    int radius = 1; // for the particular example we are analyzing
+    int radius = 0.8; // for the particular example we are analyzing
 
 
 
@@ -729,7 +812,7 @@ void PcMesher::cleanOpenMesh(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, Mesh 
 
     bool far = true;
     int it = 0;
-    std::set<Mesh::HalfEdgeIndex> he_dictionary;
+   // std::set<Mesh::HalfEdgeIndex> he_dictionary;
 
     while (far){
         far = false;
@@ -740,13 +823,15 @@ void PcMesher::cleanOpenMesh(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, Mesh 
             for (unsigned int j = 0; j < b.size(); j++){
                 const Mesh::HalfEdgeIndex hei = b[j];
 
-                if (he_dictionary.find(hei) != he_dictionary.end()){
-                    continue;
-                } else {
-                    he_dictionary.insert(hei);
-                }
+                // ESTO EN REALIDAD NO SIRVE PARA NADA... :,( ---------
+//                if (he_dictionary.find(hei) != he_dictionary.end()){
+//                    std::cerr << "Already have it!!" << std::endl;
+//                    continue;
+//                } else {
+//                    he_dictionary.insert(hei);
+//                }
+                //-----------------------------------------------------
 
-                std::cerr << hei << std::endl;
                 const Mesh::VertexIndex vei = _inputMesh.getOriginatingVertexIndex(hei);
                 const PointXYZRGBNormalCam current = _inputMesh.getVertexDataCloud()[vei.get()];
                 const Mesh::FaceIndex face = _inputMesh.getOppositeFaceIndex(hei);

@@ -262,12 +262,12 @@ int main (int argc, char *argv[]){
 
         bool open = cloud.isMeshOpen(polyMesh);
         if (open){
-            std::cerr << "Abierta" << std::endl;
+            std::cerr << "Open" << std::endl;
         } else {
-            std::cerr << "Cerrada" << std::endl;
+            std::cerr << "Closed" << std::endl;
         }
 
-        cloud.openHole(polyMesh);
+        //cloud.openHole(polyMesh);
         open = cloud.isMeshOpen(polyMesh);
 
         if (open){
@@ -275,6 +275,8 @@ int main (int argc, char *argv[]){
         } else {
             std::cerr << "Cerrada" << std::endl;
         }
+
+        cloud.detectLargestComponent(polyMesh);
 
         cloud.cleanOpenMesh(cloud.getPointCloudPtr(0), polyMesh);
 

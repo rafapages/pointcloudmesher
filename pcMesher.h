@@ -24,10 +24,10 @@ public:
     ~PcMesher();
 
     // Get number of clouds
-    unsigned int getNClouds();
+    unsigned int getNClouds() const;
 
     // Get the vector of point-camera correspondance
-    std::vector<std::vector<int> > getCamPerVtx();
+    std::vector<std::vector<int> > getCamPerVtx() const;
 
     // Get a Ptr to a cloud
     PointCloud<PointXYZRGBNormalCam>::Ptr getPointCloudPtr(unsigned int _index);
@@ -70,6 +70,7 @@ public:
     void allSurfaceReconstruction();
 
     // Mesh operations
+    void detectLargestComponent(Mesh& _inputMesh) const;
     bool isMeshOpen(const Mesh& _inputMesh) const;
     void openHole(Mesh& _inputMesh) const;
 

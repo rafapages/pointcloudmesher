@@ -18,6 +18,7 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/extract_indices.h>
+#include <pcl/filters/voxel_grid.h>
 #include <pcl/segmentation/extract_clusters.h>
 
 #include <pcl/surface/vtk_smoothing/vtk_mesh_quadric_decimation.h>
@@ -27,6 +28,10 @@
 #include <pcl/geometry/mesh_io.h>
 #include <pcl/geometry/polygon_mesh.h>
 #include <pcl/geometry/get_boundary.h>
+
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/filters/filter.h>
 
 
 #include <FreeImagePlus.h>
@@ -163,6 +168,31 @@ void PcMesher::removeAllOutliers(){
 
 }
 
+void PcMesher::downSample(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PointCloud<PointXYZRGBNormalCam>::Ptr _outCloud){
+
+    pcl::PCLPointCloud2::Ptr outcloud (new pcl::PCLPointCloud2 ());
+    pcl::PCLPointCloud2::Ptr incloud (new pcl::PCLPointCloud2 ());
+
+    toPCLPointCloud2(*_cloud, *incloud);
+
+    std::cerr << "PointCloud before filtering: " << _cloud->width * _cloud->height << std::endl;
+    std::cerr << "Downsampling point cloud..." << std::endl;
+
+    // Create the filtering object
+    VoxelGrid<pcl::PCLPointCloud2> sor;
+    sor.setInputCloud (incloud);
+    sor.setLeafSize (0.05f, 0.05f, 0.05f);
+    sor.filter (*outcloud);
+
+    // PointCloud instead of PCLPointCloud2
+    fromPCLPointCloud2 (*outcloud, *_outCloud);
+
+    std::cerr << "PointCloud after filtering: " << _outCloud->width * _outCloud->height << std::endl;
+
+
+}
+
+
 
 
 void PcMesher::estimateNormals(const unsigned int _index){
@@ -258,44 +288,6 @@ void PcMesher::fixAllNormals(){
         fixNormal(i);
 
     }
-}
-
-void PcMesher::extractClusters(const unsigned int _index){
-
-    // Creating the KdTree object for the search method of the extraction
-      pcl::search::KdTree<PointXYZRGBNormalCam>::Ptr tree (new pcl::search::KdTree<PointXYZRGBNormalCam>);
-      tree->setInputCloud (pointClouds_[_index]);
-
-      std::vector<pcl::PointIndices> cluster_indices;
-      pcl::EuclideanClusterExtraction<PointXYZRGBNormalCam> ec;
-      ec.setClusterTolerance (0.1); // 2cm
-      ec.setMinClusterSize (100);
-      ec.setMaxClusterSize (25000);
-      ec.setSearchMethod (tree);
-      ec.setInputCloud (pointClouds_[_index]);
-      ec.extract (cluster_indices);
-
-      int j = 0;
-      for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it){
-        pcl::PointCloud<PointXYZRGBNormalCam>::Ptr cloud_cluster (new pcl::PointCloud<PointXYZRGBNormalCam>);
-        for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit){
-          cloud_cluster->points.push_back (pointClouds_[_index]->points[*pit]); //*
-        }
-        cloud_cluster->width = cloud_cluster->points.size ();
-        cloud_cluster->height = 1;
-        cloud_cluster->is_dense = true;
-
-
-        // THIS PART NEEDS TO BE IMPROVED TO SAVE THE POINTS AND NOT EXPORT THEM!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
-        std::stringstream ss;
-        ss << "cloud_cluster_" << j << ".ply";
-        io::savePLYFile(ss.str (), *cloud_cluster); //*
-        j++;
-      }
-
-
-
 }
 
 void PcMesher::segmentPlanes(float _threshold){
@@ -690,7 +682,6 @@ void PcMesher::detectLargestComponent(Mesh &_inputMesh) const {
     }
 
     std::cerr << "Number of mesh components: " << nComponents << std::endl;
-    std::cerr << "Number of mesh components2: " << components.size() << std::endl;
 
     // In case there is more than one component, we just keep the largest
     if (components.size() != 1){
@@ -787,6 +778,8 @@ void PcMesher::cleanOpenMesh(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, Mesh 
         return;
     }
 
+    std::cerr << "hola que ase " << _cloud->width*_cloud->height << std::endl;
+
     // we acquire a set of boundary halfedges
     std::vector<Mesh::HalfEdgeIndices> boundary;
     pcl::geometry::getBoundBoundaryHalfEdges(_inputMesh, boundary);
@@ -804,7 +797,7 @@ void PcMesher::cleanOpenMesh(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, Mesh 
     }
 
     // Estimate the optimal search radius
-    int radius = 0.8; // for the particular example we are analyzing
+    float radius = 0.3f; // for the particular example we are analyzing
 
 
 
@@ -823,16 +816,9 @@ void PcMesher::cleanOpenMesh(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, Mesh 
             for (unsigned int j = 0; j < b.size(); j++){
                 const Mesh::HalfEdgeIndex hei = b[j];
 
-                // ESTO EN REALIDAD NO SIRVE PARA NADA... :,( ---------
-//                if (he_dictionary.find(hei) != he_dictionary.end()){
-//                    std::cerr << "Already have it!!" << std::endl;
-//                    continue;
-//                } else {
-//                    he_dictionary.insert(hei);
-//                }
-                //-----------------------------------------------------
 
                 const Mesh::VertexIndex vei = _inputMesh.getOriginatingVertexIndex(hei);
+                if (!vei.isValid()) continue;
                 const PointXYZRGBNormalCam current = _inputMesh.getVertexDataCloud()[vei.get()];
                 const Mesh::FaceIndex face = _inputMesh.getOppositeFaceIndex(hei);
                 std::cerr << i << "/" << j << std::endl;
@@ -899,12 +885,12 @@ void PcMesher::cleanOpenMesh(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, Mesh 
         }
 
         it++;
-        pcl::PolygonMesh test;
-        pcl::geometry::toFaceVertexMesh(_inputMesh, test);
-        std::stringstream ss;
-        ss << it;
-        ss << ".ply";
-        io::savePLYFile(ss.str().c_str(),  test);
+//        pcl::PolygonMesh test;
+//        pcl::geometry::toFaceVertexMesh(_inputMesh, test);
+//        std::stringstream ss;
+//        ss << it;
+//        ss << ".ply";
+//        io::savePLYFile(ss.str().c_str(),  test);
         // ----------------------------------------
 
     }
@@ -1039,6 +1025,7 @@ void PcMesher::getImageDimensions(std::string _imageName, unsigned int &_height,
 void PcMesher::readPLYCloud(const std::string& _fileName){
 
     // This cloud is a temporal one which will be stored in the cloud vector
+    pointClouds_.clear();
     PointCloud<PointXYZRGBNormalCam>::Ptr cloud (new PointCloud<PointXYZRGBNormalCam>);
 
     // Cloud file is loaded
@@ -1447,7 +1434,7 @@ void PcMesher::removeOutliersFromCamPerVtx(PointIndices &_indices){
 }
 
 
-bool PcMesher::isPointCloseToPointCloud(const PointXYZRGBNormalCam &_point, const PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, int _radius) const {
+bool PcMesher::isPointCloseToPointCloud(const PointXYZRGBNormalCam &_point, const PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, float _radius) const {
 
 
     KdTreeFLANN<PointXYZRGBNormalCam> kdtree;

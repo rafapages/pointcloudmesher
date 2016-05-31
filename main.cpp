@@ -249,7 +249,6 @@ int main (int argc, char *argv[]){
             return 1;
         }
 
-        PcMesher cloud;
         PolygonMesh mesh;
 
         cloud.readPLYMesh(argv[2], mesh);
@@ -271,25 +270,26 @@ int main (int argc, char *argv[]){
         open = cloud.isMeshOpen(polyMesh);
 
         if (open){
-            std::cerr << "Abierta" << std::endl;
+            std::cerr << "Open" << std::endl;
         } else {
-            std::cerr << "Cerrada" << std::endl;
+            std::cerr << "Closed" << std::endl;
         }
 
         cloud.detectLargestComponent(polyMesh);
 
-        cloud.cleanOpenMesh(cloud.getPointCloudPtr(0), polyMesh);
+        PointCloud<PointXYZRGBNormalCam>::Ptr sampledPtr (new PointCloud<PointXYZRGBNormalCam>);
 
-        PolygonMesh outtest;
-        pcl::geometry::toFaceVertexMesh(polyMesh, outtest);
+        cloud.downSample(cloud.getPointCloudPtr(0), sampledPtr);
 
-        io::savePLYFile("TEST_LIMPIO.ply", outtest);
+        cloud.cleanOpenMesh(sampledPtr, polyMesh);
+
+
+        PolygonMesh m;
+        pcl::geometry::toFaceVertexMesh(polyMesh, m);
 
         // /TEST-----------------------
 
-
-
-        PolygonMesh m = cloud.deleteWrongVertices(cloud.getPointCloudPtr(0), mesh);
+//        PolygonMesh m = cloud.deleteWrongVertices(cloud.getPointCloudPtr(0), mesh);
 
         io::savePLYFile("mesh_clean.ply", m);
 

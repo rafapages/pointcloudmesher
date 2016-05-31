@@ -45,6 +45,9 @@ public:
     void removeOutliers(unsigned int _index);
     void removeAllOutliers();
 
+    // Downsample a pointcloud
+    void downSample(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PointCloud<PointXYZRGBNormalCam>::Ptr _outCloud);
+
     // Estimate the normals of a cloud and store them
     void estimateNormals(const unsigned int _index);
     void estimateNormals(const unsigned int _index, const float _radius);
@@ -54,9 +57,6 @@ public:
     // Fix the normal orientation using the camera position
     void fixNormal(const unsigned int _index);
     void fixAllNormals();
-
-    // Cluster the point cloud into several sets
-    void extractClusters(const unsigned int _index);
 
     // Plane segmentation
     void segmentPlanes(float _threshold);
@@ -116,7 +116,7 @@ public:
 
 private:
 
-    bool isPointCloseToPointCloud(const PointXYZRGBNormalCam& _point, const PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, int _radius) const;
+    bool isPointCloseToPointCloud(const PointXYZRGBNormalCam& _point, const PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, float _radius) const;
 
     void removeOutliersFromCamPerVtx(PointIndices& _indices);
 

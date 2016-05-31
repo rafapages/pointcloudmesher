@@ -40,13 +40,16 @@ public:
     Eigen::Vector3f getDimensions(const unsigned int _index);
     Eigen::Vector3f getDimensions(const PolygonMesh& _mesh);
 
+    // Compute point cloud resolution
+    double computeResolution(const PointCloud<PointXYZRGBNormalCam>::Ptr& _cloud) const;
+
     // Outlier filtering
     void removeOutliers(PointCloud<PointXYZRGBNormalCam>::Ptr& _cloud);
     void removeOutliers(unsigned int _index);
     void removeAllOutliers();
 
     // Downsample a pointcloud
-    void downSample(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PointCloud<PointXYZRGBNormalCam>::Ptr _outCloud);
+    void downSample(const PointCloud<PointXYZRGBNormalCam>::Ptr& _cloud, PointCloud<PointXYZRGBNormalCam>::Ptr _outCloud);
 
     // Estimate the normals of a cloud and store them
     void estimateNormals(const unsigned int _index);
@@ -75,7 +78,7 @@ public:
     void openHole(Mesh& _inputMesh) const;
 
     // Mesh refining
-    void cleanOpenMesh(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, Mesh& _inputMesh) const;
+    void cleanOpenMesh(const PointCloud<PointXYZRGBNormalCam>::Ptr& _cloud, Mesh& _inputMesh) const;
     PolygonMesh deleteWrongVertices(PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, PolygonMesh& _inputMesh);   
     PolygonMesh decimateMesh(const PolygonMesh& _mesh, float _reduction);
     PolygonMesh smoothMeshLaplacian(const PolygonMesh& _mesh);

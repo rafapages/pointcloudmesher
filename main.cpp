@@ -255,6 +255,7 @@ int main (int argc, char *argv[]){
         cloud.readPLYCloud(argv[3]);
 
         // TEST-----------------------
+
         Mesh polyMesh;
 
         pcl::geometry::toHalfEdgeMesh(mesh, polyMesh); // IMPORTANT!! this is how the conversion is done!
@@ -280,8 +281,8 @@ int main (int argc, char *argv[]){
         PointCloud<PointXYZRGBNormalCam>::Ptr sampledPtr (new PointCloud<PointXYZRGBNormalCam>);
 
         cloud.downSample(cloud.getPointCloudPtr(0), sampledPtr);
-
         cloud.cleanOpenMesh(sampledPtr, polyMesh);
+        cloud.detectLargestComponent(polyMesh);
 
 
         PolygonMesh m;

@@ -828,8 +828,6 @@ void PcMesher::cleanOpenMesh(const PointCloud<PointXYZRGBNormalCam>::Ptr& _cloud
     }
 
     // Estimate the optimal search radius
-//    float radius = 0.3f; // for the particular example we are analyzing
-
     double resolution = computeResolution(_cloud);
 //    float radius = 10*resolution;
 

@@ -225,6 +225,53 @@ void PcMesher::downSample(const PointCloud<PointXYZRGBNormalCam>::Ptr& _cloud, P
 
 }
 
+void PcMesher::getPlaneDefinedByCameras(PointXYZRGBNormalCam& _normal) const{
+
+    std::vector<Eigen::Vector3f> cam_pos;
+    for (unsigned int i = 0; i < cameras_.size(); i++){
+        const Camera c = cameras_[i];
+        cam_pos.push_back(c.getCameraPosition());
+    }
+
+    Eigen::Vector3f normal;
+    fitPlane(cam_pos, normal);
+
+}
+
+void PcMesher::fitPlane(const std::vector<Eigen::Vector3f> _cloud, Eigen::Vector3f& _normal) const{
+
+    // http://stackoverflow.com/questions/1400213/3d-least-squares-plane
+    // http://www.ilikebigbits.com/blog/2015/3/2/plane-from-points
+
+    Eigen::Matrix3f A;
+    Eigen::Vector3f b;
+    float xx, xy, yy, xz, yz, x, y, z;
+    xx = xy = yy = xz = yz = x = y = z = 0.0;
+
+    for (unsigned int i = 0; i < _cloud.size(); i++){
+        const Eigen::Vector3f current = _cloud[i];
+        xx += current(0) * current(0);
+        xy += current(0) * current(1);
+        yy += current(1) * current(1);
+        xz += current(0) * current(2);
+        yz += current(1) * current(2);
+        x = current(0);
+        y = current(1);
+        z = current(2);
+    }
+
+    A << xx, xy, x,
+         xy, yy, y,
+         x,   y, (float) _cloud.size();
+
+    b << xz, yz, z;
+
+    std::cerr << "A\n" << A << std::endl;
+    std::cerr << "b\n" << b << std::endl;
+
+}
+
+
 
 
 
@@ -828,8 +875,6 @@ void PcMesher::cleanOpenMesh(const PointCloud<PointXYZRGBNormalCam>::Ptr& _cloud
     }
 
     // Estimate the optimal search radius
-//    float radius = 0.3f; // for the particular example we are analyzing
-
     double resolution = computeResolution(_cloud);
 //    float radius = 10*resolution;
 

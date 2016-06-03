@@ -22,8 +22,8 @@ public:
     void setRotationMatrix(const Eigen::Matrix3f _R);
     void setTranslationVector(const Eigen::Vector3f _t);
 
-    Eigen::Vector3f getCameraPosition();
-    void getCameraPosition(PointXYZRGBNormalCam& _point);
+    Eigen::Vector3f getCameraPosition() const;
+    void getCameraPosition(PointXYZRGBNormalCam& _point) const;
 
     void readCamera(std::ifstream& _stream);
 

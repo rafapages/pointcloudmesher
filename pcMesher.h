@@ -51,6 +51,13 @@ public:
     // Downsample a pointcloud
     void downSample(const PointCloud<PointXYZRGBNormalCam>::Ptr& _cloud, PointCloud<PointXYZRGBNormalCam>::Ptr _outCloud);
 
+    // Estimates the plane defined by the cameras
+    void getPlaneDefinedByCameras(PointXYZRGBNormalCam& _normal) const;
+
+    // Fit a plane in a point cloud given and return its normal
+    void fitPlane(const std::vector<Eigen::Vector3f> _cloud, Eigen::Vector3f& _normal) const;
+
+
     // Estimate the normals of a cloud and store them
     void estimateNormals(const unsigned int _index);
     void estimateNormals(const unsigned int _index, const float _radius);

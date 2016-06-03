@@ -105,6 +105,11 @@ int main (int argc, char *argv[]){
         cloud.readImageList(listname);
         cloud.writeCameraSetupFile(nameout + "_cameras.txt");
 
+        // TEST
+        PointXYZRGBNormalCam normal;
+        cloud.getPlaneDefinedByCameras(normal);
+        //
+
         cloud.writeCloud(nameout + "_input.ply");
 
         // Statistical outlier removal
@@ -255,6 +260,8 @@ int main (int argc, char *argv[]){
         cloud.readPLYCloud(argv[3]);
 
         // TEST-----------------------
+//        PointXYZRGBNormalCam normal;
+//        cloud.getPlaneDefinedByCameras(normal);
 
         Mesh polyMesh;
 

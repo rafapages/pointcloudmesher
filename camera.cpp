@@ -43,11 +43,11 @@ void Camera::setTranslationVector(const Eigen::Vector3f _t){
     t_ = _t;
 }
 
-Eigen::Vector3f Camera::getCameraPosition(){ // -R'·t
+Eigen::Vector3f Camera::getCameraPosition() const { // -R'·t
     return -R_.transpose() * t_;
 }
 
-void Camera::getCameraPosition(PointXYZRGBNormalCam& _point){
+void Camera::getCameraPosition(PointXYZRGBNormalCam& _point) const {
     Eigen::Vector3f pos = this->getCameraPosition();
     _point.x = pos(0);
     _point.y = pos(1);

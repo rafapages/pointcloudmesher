@@ -236,6 +236,12 @@ void PcMesher::getPlaneDefinedByCameras(PointXYZRGBNormalCam& _normal) const{
     Eigen::Vector3f normal;
     fitPlane(cam_pos, normal);
 
+    _normal.x = normal(0);
+    _normal.y = normal(1);
+    _normal.z = normal(2);
+
+//    std::cerr << "normal\n" << normal << std::endl;
+
 }
 
 void PcMesher::fitPlane(const std::vector<Eigen::Vector3f> _cloud, Eigen::Vector3f& _normal) const{
@@ -807,42 +813,95 @@ bool PcMesher::isMeshOpen(const Mesh& _inputMesh) const {
     return open;
 }
 
-void PcMesher::openHole(Mesh &_inputMesh) const {
+void PcMesher::openHole(Mesh &_inputMesh, const PointXYZRGBNormalCam& _normal) const {
 
-    if (isMeshOpen(_inputMesh)){
-        std::cerr << "Mesh is already open!" << std::endl;
-        return;
-    }
+//    if (isMeshOpen(_inputMesh)){
+//        std::cerr << "Mesh is already open!" << std::endl;
+//        return;
+//    }
 
-    float maxArea = FLT_MIN;
-    Mesh::FaceIndex bigface;
-    for (unsigned int i = 0; i < _inputMesh.sizeFaces(); i++){
-        Mesh::FaceIndex fidx = Mesh::FaceIndex(i);
+    Mesh::VertexIndex highest, lowest;
+    float ftop, fbot;
+    ftop = -FLT_MAX;
+    fbot = FLT_MAX;
 
-        Mesh::VertexAroundFaceCirculator        circ = _inputMesh.getVertexAroundFaceCirculator(fidx);
-        const Mesh::VertexAroundFaceCirculator  circ_end = circ;
+    Eigen::Vector3f normal = _normal.getArray3fMap();
 
-        std::vector<Eigen::Vector3f> vertices;
-        do {
-            const PointXYZRGBNormalCam current = _inputMesh.getVertexDataCloud()[circ.getTargetIndex().get()];
-            vertices.push_back(current.getArray3fMap());
-        } while (++circ != circ_end);
+    for (unsigned int i = 0; i < _inputMesh.sizeVertices(); i++){
+        const Mesh::VertexIndex vidx = Mesh::VertexIndex(i);
+        const PointXYZRGBNormalCam ve = _inputMesh.getVertexDataCloud()[vidx.get()];
+        Eigen::Vector3f v = ve.getArray3fMap();
 
-        Eigen::Vector3f v1, v2;
-        v1 = vertices[1]-vertices[0];
-        v2 = vertices[2]-vertices[0];
+        float dotp = normal.dot(v);
 
-        Eigen::Vector3f areav = v1.cross(v2);
-        float area = areav.norm();
 
-        if (area > maxArea){
-            maxArea = area;
-            bigface = fidx;
+        if (dotp > ftop){
+            ftop = dotp;
+            highest = vidx;
         }
+
+        if (dotp < fbot){
+            fbot = dotp;
+            lowest = vidx;
+        }
+
     }
 
-    _inputMesh.deleteFace(bigface);
+    Mesh::FaceAroundVertexCirculator hcirc = _inputMesh.getFaceAroundVertexCirculator(highest);
+    const Mesh::FaceAroundVertexCirculator hcirc_end = hcirc;
+
+    do{
+        Mesh::FaceIndex fidx = hcirc.getTargetIndex();
+        if (fidx.isValid()){
+            _inputMesh.deleteFace(fidx);
+            break;
+        }
+    } while (++hcirc != hcirc_end);
+
+
+    Mesh::FaceAroundVertexCirculator lcirc = _inputMesh.getFaceAroundVertexCirculator(lowest);
+    const Mesh::FaceAroundVertexCirculator lcirc_end = lcirc;
+
+    do{
+        Mesh::FaceIndex fidx = lcirc.getTargetIndex();
+        if (fidx.isValid()){
+            _inputMesh.deleteFace(fidx);
+            break;
+        }
+    } while (++lcirc != lcirc_end);
+
     _inputMesh.cleanUp();
+
+
+//    float maxArea = FLT_MIN;
+//    Mesh::FaceIndex bigface;
+//    for (unsigned int i = 0; i < _inputMesh.sizeFaces(); i++){
+//        Mesh::FaceIndex fidx = Mesh::FaceIndex(i);
+
+//        Mesh::VertexAroundFaceCirculator        circ = _inputMesh.getVertexAroundFaceCirculator(fidx);
+//        const Mesh::VertexAroundFaceCirculator  circ_end = circ;
+
+//        std::vector<Eigen::Vector3f> vertices;
+//        do {
+//            const PointXYZRGBNormalCam current = _inputMesh.getVertexDataCloud()[circ.getTargetIndex().get()];
+//            vertices.push_back(current.getArray3fMap());
+//        } while (++circ != circ_end);
+
+//        Eigen::Vector3f v1, v2;
+//        v1 = vertices[1]-vertices[0];
+//        v2 = vertices[2]-vertices[0];
+
+//        Eigen::Vector3f areav = v1.cross(v2);
+//        float area = areav.norm();
+
+//        if (area > maxArea){
+//            maxArea = area;
+//            bigface = fidx;
+//        }
+//    }
+
+//    _inputMesh.deleteFace(bigface);
+//    _inputMesh.cleanUp();
 
     pcl::PolygonMesh out;
     pcl::geometry::toFaceVertexMesh(_inputMesh, out);
@@ -876,7 +935,6 @@ void PcMesher::cleanOpenMesh(const PointCloud<PointXYZRGBNormalCam>::Ptr& _cloud
 
     // Estimate the optimal search radius
     double resolution = computeResolution(_cloud);
-//    float radius = 10*resolution;
 
     float radius = 5*resolution;
 
@@ -884,7 +942,6 @@ void PcMesher::cleanOpenMesh(const PointCloud<PointXYZRGBNormalCam>::Ptr& _cloud
 
     bool far = true;
     int it = 0;
-   // std::set<Mesh::HalfEdgeIndex> he_dictionary;
 
     while (far){
         far = false;
@@ -1121,7 +1178,7 @@ void PcMesher::readPLYCloud(const std::string& _fileName){
 
 }
 
-void PcMesher::writeOneCloud(const unsigned int _index, std::string _fileName){
+void PcMesher::writeOneCloud(const unsigned int _index, const std::string& _fileName){
 
     std::cerr << "Exporting point cloud: " << _index + 1 << "/" << nClouds_ << std::endl;
 
@@ -1191,7 +1248,7 @@ void PcMesher::assignCam2Mesh(const PolygonMesh &_mesh, const PointCloud<PointXY
 
 
 // All the point clouds in the vector are concatenated and printed into one file
-void PcMesher::writeCloud(std::string _fileName){
+void PcMesher::writeCloud(const std::string& _fileName){
 
     io::savePLYFile(_fileName, combinePointClouds());
 
@@ -1274,7 +1331,7 @@ void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_
 }
 
 
-void PcMesher::bundlerReader(const std::string _fileName){
+void PcMesher::bundlerReader(const std::string& _fileName){
 
     std::cerr << "Reading Bundler file... ";
 
@@ -1341,7 +1398,57 @@ void PcMesher::bundlerReader(const std::string _fileName){
 
 }
 
-void PcMesher::readImageList(const std::string _fileName){
+void PcMesher::bundlerReadOnlyCameraInfo(const std::string& _fileName){
+
+    std::cerr << "Reading camera info from Bundler file... ";
+
+    std::ifstream inputFile(_fileName.c_str());
+    std::string line;
+
+    int nPoints = 0;
+    PointCloud<PointXYZRGBNormalCam>::Ptr cloud (new PointCloud<PointXYZRGBNormalCam>);
+
+    if (inputFile.is_open()){
+
+        // We avoid all possible comments in the firsts lines
+        do {
+            std::getline(inputFile, line);
+        } while (line.at(0) == '#');
+
+        // First, number of cameras and number of points in the input point cloud
+        boost::tokenizer<> tokens(line);
+        boost::tokenizer<>::iterator tit = tokens.begin();
+        std::stringstream ss;
+        ss << *tit;
+        ss >> nCameras_;
+        ++tit;
+
+        // stringstream is cleared. It could also be ss.str("")
+        ss.str(std::string());
+        ss.clear();
+
+        ss << *tit;
+        ss >> nPoints;
+
+        ss.str(std::string());
+        ss.clear();
+
+        // Now we read the camera information
+        for (unsigned int i = 0; i < nCameras_; i++){
+            Camera camera;
+            camera.readCamera(inputFile);
+
+            cameras_.push_back(camera);
+        }
+
+        inputFile.close();
+
+    } else {
+        std::cerr << "Unable to open Bundle file" << std::endl;
+    }
+}
+
+void PcMesher::readImageList(const std::string& _fileName){
 
     std::cerr << "Reading image list file" << std::endl;
 
@@ -1367,7 +1474,7 @@ void PcMesher::readImageList(const std::string _fileName){
 
 }
 
-void PcMesher::readPLYMesh(const std::string _fileName, PolygonMesh &_mesh){
+void PcMesher::readPLYMesh(const std::string& _fileName, PolygonMesh &_mesh){
 
     // Cloud file is loaded
     if (io::loadPolygonFilePLY(_fileName, _mesh) == -1){
@@ -1379,7 +1486,7 @@ void PcMesher::readPLYMesh(const std::string _fileName, PolygonMesh &_mesh){
     }
 }
 
-void PcMesher::readOBJMesh(const std::string _fileName, PolygonMesh &_mesh){
+void PcMesher::readOBJMesh(const std::string& _fileName, PolygonMesh &_mesh){
 
     // Cloud file is loaded
     if (io::loadPolygonFileOBJ(_fileName, _mesh) == -1){
@@ -1391,7 +1498,7 @@ void PcMesher::readOBJMesh(const std::string _fileName, PolygonMesh &_mesh){
     }
 }
 
-void PcMesher::writeOBJMesh(const std::string _fileName, PolygonMesh& _mesh){
+void PcMesher::writeOBJMesh(const std::string& _fileName, PolygonMesh& _mesh){
 
     std::cerr << "Exporting OBJ mesh" << std::endl;
 
@@ -1417,7 +1524,7 @@ void PcMesher::writeOBJMesh(const std::string _fileName, PolygonMesh& _mesh){
 }
 
 
-void PcMesher::exportIndices(PointIndices& _indices, const std::string _fileName){
+void PcMesher::exportIndices(PointIndices& _indices, const std::string& _fileName){
 
     std::cerr << "Exporting a txt file with points not included in any plane" << std::endl;
 
@@ -1432,7 +1539,7 @@ void PcMesher::exportIndices(PointIndices& _indices, const std::string _fileName
 }
 
 
-void PcMesher::exportCamPerVtx(const std::string _fileName){
+void PcMesher::exportCamPerVtx(const std::string& _fileName){
 
     std::cerr << "Exported a txt with the list of cameras which 'sees' each vertex" << std::endl;
     std::ofstream outputFile(_fileName.c_str());
@@ -1449,7 +1556,7 @@ void PcMesher::exportCamPerVtx(const std::string _fileName){
 
 }
 
-void PcMesher::deleteWrongCameras(const std::string _fileName){
+void PcMesher::deleteWrongCameras(const std::string& _fileName){
 
     std::ifstream cam2del(_fileName.c_str());
     std::vector<int> lineNums;

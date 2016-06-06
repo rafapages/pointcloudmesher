@@ -248,9 +248,9 @@ int main (int argc, char *argv[]){
     if (mode == MESH){
 
 
-        if (argc != 4){
+        if (argc != 5){
             std::cerr << "Wrong number of input paremeters for mesh cleaning mode" << std::endl;
-            std::cerr << "Usage: " << argv[0] << " -m <meshtoclean.ply> <pointcloudreference.ply>" << std::endl;
+            std::cerr << "Usage: " << argv[0] << " -m <meshtoclean.ply> <pointcloudreference.ply> <bundlermodel.out>" << std::endl;
             return 1;
         }
 
@@ -258,32 +258,23 @@ int main (int argc, char *argv[]){
 
         cloud.readPLYMesh(argv[2], mesh);
         cloud.readPLYCloud(argv[3]);
+        cloud.bundlerReadOnlyCameraInfo(argv[4]);
+
 
         // TEST-----------------------
-//        PointXYZRGBNormalCam normal;
-//        cloud.getPlaneDefinedByCameras(normal);
+
+        PointXYZRGBNormalCam normal;
+        cloud.getPlaneDefinedByCameras(normal);
+
+        //std::cerr << "\nnormal:\n" << normal.data[0] << " " << normal.data[1] << " " << normal.data[2] << std::endl;
 
         Mesh polyMesh;
 
         pcl::geometry::toHalfEdgeMesh(mesh, polyMesh); // IMPORTANT!! this is how the conversion is done!
 
-        bool open = cloud.isMeshOpen(polyMesh);
-        if (open){
-            std::cerr << "Open" << std::endl;
-        } else {
-            std::cerr << "Closed" << std::endl;
-        }
-
-        //cloud.openHole(polyMesh);
-        open = cloud.isMeshOpen(polyMesh);
-
-        if (open){
-            std::cerr << "Open" << std::endl;
-        } else {
-            std::cerr << "Closed" << std::endl;
-        }
-
         cloud.detectLargestComponent(polyMesh);
+        cloud.openHole(polyMesh, normal);
+
 
         PointCloud<PointXYZRGBNormalCam>::Ptr sampledPtr (new PointCloud<PointXYZRGBNormalCam>);
 

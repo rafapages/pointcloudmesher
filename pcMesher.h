@@ -82,7 +82,7 @@ public:
     // Mesh operations
     void detectLargestComponent(Mesh& _inputMesh) const;
     bool isMeshOpen(const Mesh& _inputMesh) const;
-    void openHole(Mesh& _inputMesh) const;
+    void openHole(Mesh& _inputMesh, const PointXYZRGBNormalCam& _normal) const;
 
     // Mesh refining
     void cleanOpenMesh(const PointCloud<PointXYZRGBNormalCam>::Ptr& _cloud, Mesh& _inputMesh) const;
@@ -109,20 +109,21 @@ public:
     // I/O functions
     void bundlerPointReader(PointXYZRGBNormalCam& _point, std::ifstream& _stream);
     void readPLYCloud(const std::string& _fileName);
-    void writeOneCloud(const unsigned int _index, const std::string _fileName);
-    void writeCloud(const std::string _fileName);
-    void bundlerReader(const std::string _fileName);
-    void readImageList(const std::string _fileName);
+    void writeOneCloud(const unsigned int _index, const std::string& _fileName);
+    void writeCloud(const std::string& _fileName);
+    void bundlerReader(const std::string& _fileName);
+    void bundlerReadOnlyCameraInfo(const std::string& _fileName);
+    void readImageList(const std::string& _fileName);
 
-    void readPLYMesh(const std::string _fileName, PolygonMesh& _mesh);
-    void readOBJMesh(const std::string _fileName, PolygonMesh& _mesh);
-    void writeOBJMesh(const std::string _fileName, PolygonMesh& _mesh);
+    void readPLYMesh(const std::string& _fileName, PolygonMesh& _mesh);
+    void readOBJMesh(const std::string& _fileName, PolygonMesh& _mesh);
+    void writeOBJMesh(const std::string& _fileName, PolygonMesh& _mesh);
 
-    void exportIndices (PointIndices& _indices, const std::string _fileName);
-    void exportCamPerVtx (const std::string _fileName);
+    void exportIndices (PointIndices& _indices, const std::string& _fileName);
+    void exportCamPerVtx (const std::string& _fileName);
 
     // Other...
-    void deleteWrongCameras(const std::string _fileName);
+    void deleteWrongCameras(const std::string& _fileName);
 
 private:
 

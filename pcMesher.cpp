@@ -873,39 +873,9 @@ void PcMesher::openHole(Mesh &_inputMesh, const PointXYZRGBNormalCam& _normal) c
     _inputMesh.cleanUp();
 
 
-//    float maxArea = FLT_MIN;
-//    Mesh::FaceIndex bigface;
-//    for (unsigned int i = 0; i < _inputMesh.sizeFaces(); i++){
-//        Mesh::FaceIndex fidx = Mesh::FaceIndex(i);
-
-//        Mesh::VertexAroundFaceCirculator        circ = _inputMesh.getVertexAroundFaceCirculator(fidx);
-//        const Mesh::VertexAroundFaceCirculator  circ_end = circ;
-
-//        std::vector<Eigen::Vector3f> vertices;
-//        do {
-//            const PointXYZRGBNormalCam current = _inputMesh.getVertexDataCloud()[circ.getTargetIndex().get()];
-//            vertices.push_back(current.getArray3fMap());
-//        } while (++circ != circ_end);
-
-//        Eigen::Vector3f v1, v2;
-//        v1 = vertices[1]-vertices[0];
-//        v2 = vertices[2]-vertices[0];
-
-//        Eigen::Vector3f areav = v1.cross(v2);
-//        float area = areav.norm();
-
-//        if (area > maxArea){
-//            maxArea = area;
-//            bigface = fidx;
-//        }
-//    }
-
-//    _inputMesh.deleteFace(bigface);
-//    _inputMesh.cleanUp();
-
-    pcl::PolygonMesh out;
-    pcl::geometry::toFaceVertexMesh(_inputMesh, out);
-    io::savePLYFile("prueba3.ply", out);
+//    pcl::PolygonMesh out;
+//    pcl::geometry::toFaceVertexMesh(_inputMesh, out);
+//    io::savePLYFile("prueba3.ply", out);
 
 }
 

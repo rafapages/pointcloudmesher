@@ -261,8 +261,6 @@ int main (int argc, char *argv[]){
         cloud.bundlerReadOnlyCameraInfo(argv[4]);
 
 
-        // TEST-----------------------
-
         PointXYZRGBNormalCam normal;
         cloud.getPlaneDefinedByCameras(normal);
 
@@ -285,8 +283,6 @@ int main (int argc, char *argv[]){
 
         PolygonMesh m;
         pcl::geometry::toFaceVertexMesh(polyMesh, m);
-
-        // /TEST-----------------------
 
 //        PolygonMesh m = cloud.deleteWrongVertices(cloud.getPointCloudPtr(0), mesh);
 

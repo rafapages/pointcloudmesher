@@ -241,7 +241,6 @@ void PcMesher::getPlaneDefinedByCameras(PointXYZRGBNormalCam& _normal) const{
 void PcMesher::fitPlane(const std::vector<Eigen::Vector3f> _cloud, Eigen::Vector3f& _normal) const{
 
     // http://stackoverflow.com/questions/1400213/3d-least-squares-plane
-    // http://www.ilikebigbits.com/blog/2015/3/2/plane-from-points
 
     Eigen::Matrix3f A;
     Eigen::Vector3f b;
@@ -266,8 +265,9 @@ void PcMesher::fitPlane(const std::vector<Eigen::Vector3f> _cloud, Eigen::Vector
 
     b << xz, yz, z;
 
-    std::cerr << "A\n" << A << std::endl;
-    std::cerr << "b\n" << b << std::endl;
+
+    _normal = A.colPivHouseholderQr().solve(b);
+    _normal.normalize();
 
 }
 

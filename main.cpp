@@ -72,6 +72,8 @@ int main (int argc, char *argv[]){
 
     PcMesher cloud;
     std::string nameout;
+    PointXYZRGBNormalCam normal;
+
 
     float scale = 0.0;
 
@@ -105,10 +107,8 @@ int main (int argc, char *argv[]){
         cloud.readImageList(listname);
         cloud.writeCameraSetupFile(nameout + "_cameras.txt");
 
-        // TEST
-        PointXYZRGBNormalCam normal;
+        // We get the plane defined by the cameras
         cloud.getPlaneDefinedByCameras(normal);
-        //
 
         cloud.writeCloud(nameout + "_input.ply");
 
@@ -152,6 +152,9 @@ int main (int argc, char *argv[]){
 
         cloud.readPLYCloud(pcname);
 
+        // We get the plane defined by the cameras
+        cloud.getPlaneDefinedByCameras(normal);
+
         // Estimating dimensions
         Eigen::Vector3f dim = cloud.getDimensions(0);
         scale = cbrt(dim(0) * dim(1) * dim(2));
@@ -185,7 +188,22 @@ int main (int argc, char *argv[]){
         PolygonMesh first_mesh = cloud.surfaceReconstruction(combinedCloudPtr);
         io::savePLYFile(nameout + "_poisson.ply", first_mesh);
 
-        PolygonMesh m = cloud.deleteWrongVertices(combinedCloudPtr, first_mesh);
+        Mesh polyMesh;
+        pcl::geometry::toHalfEdgeMesh(first_mesh, polyMesh); // IMPORTANT!! this is how the conversion is done!
+
+        cloud.detectLargestComponent(polyMesh);
+        cloud.openHole(polyMesh, normal);
+
+
+        PointCloud<PointXYZRGBNormalCam>::Ptr sampledPtr (new PointCloud<PointXYZRGBNormalCam>);
+
+        cloud.downSample(cloud.getPointCloudPtr(0), sampledPtr);
+        cloud.cleanOpenMesh(sampledPtr, polyMesh);
+        cloud.detectLargestComponent(polyMesh);
+
+        PolygonMesh m;
+        pcl::geometry::toFaceVertexMesh(polyMesh, m);
+//        PolygonMesh m = cloud.deleteWrongVertices(combinedCloudPtr, first_mesh);
 
 //        cloud.assignCam2Mesh(m, combinedCloudPtr, nameout + "_meshcamera.txt");
         PolygonMesh ms = cloud.smoothMeshLaplacian(m);
@@ -211,14 +229,18 @@ int main (int argc, char *argv[]){
 
     if (mode == POISSON){
 
-        if (argc != 3){
+        if (argc != 4){
             std::cerr << "Wrong number of input paremeters" << std::endl;
-            std::cerr << "Usage: " << argv[0] << " -p <pointCloud.ply>" << std::endl;
+            std::cerr << "Usage: " << argv[0] << " -p <pointCloud.ply> <bundlermodel.out>" << std::endl;
             return 1;
         }
 
         // Reading input parameteres: blunder file and image list
         cloud.readPLYCloud(argv[2]);
+        cloud.bundlerReadOnlyCameraInfo(argv[3]);
+
+
+        cloud.getPlaneDefinedByCameras(normal);
 
 //        // To fix the normals!!
 //        cloud.bundlerReader(argv[3]);
@@ -227,7 +249,24 @@ int main (int argc, char *argv[]){
         PolygonMesh first_mesh = cloud.surfaceReconstruction(cloud.getPointCloudPtr(0));
         io::savePLYFile("poisson_v2.ply", first_mesh);
 
-        PolygonMesh m = cloud.deleteWrongVertices(cloud.getPointCloudPtr(0), first_mesh);
+        Mesh polyMesh;
+        pcl::geometry::toHalfEdgeMesh(first_mesh, polyMesh); // IMPORTANT!! this is how the conversion is done!
+
+        cloud.detectLargestComponent(polyMesh);
+        cloud.openHole(polyMesh, normal);
+
+
+        PointCloud<PointXYZRGBNormalCam>::Ptr sampledPtr (new PointCloud<PointXYZRGBNormalCam>);
+
+        cloud.downSample(cloud.getPointCloudPtr(0), sampledPtr);
+        cloud.cleanOpenMesh(sampledPtr, polyMesh);
+        cloud.detectLargestComponent(polyMesh);
+
+        PolygonMesh m;
+        pcl::geometry::toFaceVertexMesh(polyMesh, m);
+
+
+//        PolygonMesh m = cloud.deleteWrongVertices(cloud.getPointCloudPtr(0), first_mesh);
         io::savePLYFile("poisson_clean.ply", m);
 
         PolygonMesh ms = cloud.smoothMeshLaplacian(m);
@@ -261,13 +300,9 @@ int main (int argc, char *argv[]){
         cloud.bundlerReadOnlyCameraInfo(argv[4]);
 
 
-        PointXYZRGBNormalCam normal;
         cloud.getPlaneDefinedByCameras(normal);
 
-        //std::cerr << "\nnormal:\n" << normal.data[0] << " " << normal.data[1] << " " << normal.data[2] << std::endl;
-
         Mesh polyMesh;
-
         pcl::geometry::toHalfEdgeMesh(mesh, polyMesh); // IMPORTANT!! this is how the conversion is done!
 
         cloud.detectLargestComponent(polyMesh);

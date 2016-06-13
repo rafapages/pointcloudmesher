@@ -708,7 +708,7 @@ PolygonMesh PcMesher::smoothMeshLaplacian(const PolygonMesh &_mesh){
     PolygonMesh outputMesh;
     MeshSmoothingLaplacianVTK smoother;
     smoother.setInputMesh(meshPtr);
-    smoother.setNumIter(10);
+    smoother.setNumIter(3);
     smoother.setRelaxationFactor(0.5);
     smoother.process(outputMesh);
 

@@ -8,7 +8,7 @@
 #include <boost/make_shared.hpp>
 #include <boost/program_options.hpp>
 
-typedef enum {ALL, NO_NORMAL, POISSON, FIXLIST, MESH} RunMode;
+typedef enum {ALL, SPLASH, NO_NORMAL, POISSON, FIXLIST, MESH} RunMode;
 
 int main (int argc, char *argv[]){
 
@@ -22,11 +22,12 @@ int main (int argc, char *argv[]){
         po::options_description desc("Options");
         desc.add_options()
                 ("help,h", "Print this help message")
-                ("all,a", "Run the complete system")
-                ("normal,n", "Run the system but loads a poin cloud where normals have already been roughly estimated")
-                ("poisson,p", "Run just the poisson reconstruction given a point cloud")
+                ("all,a", "Runs the complete system")
+                ("splash,s", "Runs the complete system and setups the data for splash model creation")
+                ("normal,n", "Runs the system but loads a point cloud where normals have already been roughly estimated")
+                ("poisson,p", "Runs just the poisson reconstruction given a point cloud")
                 ("meshtoclean,m", "Loads a mesh and a point cloud and perform operations on the mesh")
-                ("fixlist,l", "Fix the image list given another list with cameras with wrong texture")
+                ("fixlist,l", "Fixes the image list given another list with cameras with wrong texture")
                 ;
 
         po::variables_map vm;
@@ -52,6 +53,9 @@ int main (int argc, char *argv[]){
         } else if (vm.count("fixlist")){
             std::cerr << "Fixing the image list..." << std::endl;
             mode = FIXLIST;
+        } else if (vm.count("splash")){
+            std::cerr << "Splash model creation system will now run..." << std::endl;
+            mode = SPLASH;
         } else {
             std::cerr << "Complete system will now run" << std::endl;
             mode = ALL;
@@ -175,9 +179,18 @@ int main (int argc, char *argv[]){
         cloud.fixAllNormals();
 
         // "Planar" point clouds are collected into a single point cloud
-        std::vector<PointCloud<PointXYZRGBNormalCam>::Ptr> pointclouds;
-        for (unsigned int i = 1; i < cloud.getNClouds(); i++){
-            pointclouds.push_back(cloud.getPointCloudPtr(i));
+        std::vector<PointCloud<PointXYZRGBNormalCam>::Ptr> pointclouds;      
+
+        if (mode == SPLASH){
+            for (unsigned int i = 1; i < cloud.getNClouds(); i++){
+                pointclouds.push_back(cloud.getPointCloudPtr(i));
+                nameout += "-s-";
+            }
+        } else {
+            for (unsigned int i = 0; i < cloud.getNClouds(); i++){
+                pointclouds.push_back(cloud.getPointCloudPtr(i));
+                nameout += "-a-";
+            }
         }
 
         PointCloud<PointXYZRGBNormalCam> combinedCloud = cloud.combinePointClouds(pointclouds);
@@ -209,13 +222,13 @@ int main (int argc, char *argv[]){
         PolygonMesh ms = cloud.smoothMeshLaplacian(m);
         PolygonMesh simpleM = cloud.decimateMesh(ms, 0.01);
 
-        io::savePLYFile(nameout + "_poisson_limpio.ply", m);
-        io::savePLYFile(nameout + "_poisson_limpio_smooth.ply", ms);
-        io::savePLYFile(nameout + "_poisson_limpio_smooth_decimated.ply", simpleM);
+        io::savePLYFile(nameout + "_poisson_clean.ply", m);
+        io::savePLYFile(nameout + "_poisson_clean_smooth.ply", ms);
+        io::savePLYFile(nameout + "_poisson_clean_smooth_decimated.ply", simpleM);
         cloud.writeOBJMesh(nameout + ".obj", simpleM);
 
         cloud.assignCam2Mesh(ms, combinedCloudPtr, nameout + "_meshcamera.txt");
-        cloud.assignCam2Mesh(simpleM, combinedCloudPtr, nameout + "_limpio_decimated_meshcamera.txt");
+        cloud.assignCam2Mesh(simpleM, combinedCloudPtr, nameout + "_clean_decimated_meshcamera.txt");
 
         //    cloud.drawCameras();
 

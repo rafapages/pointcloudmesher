@@ -127,7 +127,7 @@ int main (int argc, char *argv[]){
         // We first estimate normals to get an initial orientation
 //        cloud.estimateAllNormals(scale*0.01);
         cloud.estimateAllNormals(scale*0.005);
-        cloud.writeCloud(nameout + "_sinoutliers.ply");
+        cloud.writeCloud(nameout + "_no_outliers.ply");
     }
 
     //------------------------------------------------------------------------
@@ -182,14 +182,14 @@ int main (int argc, char *argv[]){
         std::vector<PointCloud<PointXYZRGBNormalCam>::Ptr> pointclouds;      
 
         if (mode == SPLASH){
+            nameout += "-s";
             for (unsigned int i = 1; i < cloud.getNClouds(); i++){
                 pointclouds.push_back(cloud.getPointCloudPtr(i));
-                nameout += "-s-";
             }
         } else {
+            nameout += "-a";
             for (unsigned int i = 0; i < cloud.getNClouds(); i++){
                 pointclouds.push_back(cloud.getPointCloudPtr(i));
-                nameout += "-a-";
             }
         }
 

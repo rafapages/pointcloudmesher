@@ -107,7 +107,7 @@ public:
     void assignCam2Mesh(const PolygonMesh& _mesh, const PointCloud<PointXYZRGBNormalCam>::Ptr _cloud, const std::string _fileName);
 
     // I/O functions
-    void bundlerPointReader(PointXYZRGBNormalCam& _point, std::ifstream& _stream);
+    bool bundlerPointReader(PointXYZRGBNormalCam& _point, std::ifstream& _stream);
     void readPLYCloud(const std::string& _fileName);
     void writeOneCloud(const unsigned int _index, const std::string& _fileName);
     void writeCloud(const std::string& _fileName);

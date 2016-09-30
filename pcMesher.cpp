@@ -1224,7 +1224,7 @@ void PcMesher::writeCloud(const std::string& _fileName){
 
 }
 
-void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_stream){
+bool PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_stream){
 
     std::stringstream ss;
     std::string line;
@@ -1279,7 +1279,7 @@ void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_
 
             std::vector<int> cam2vtx;
 
-            if (nCam > 0){
+            if (nCam >= 3){
                 for (unsigned int index = 0; ptit != point_tokens.end(); ++ptit, index++){
                     if (index%4 != 0) continue; // every four values we have the number of the camera, we don't care about the other values.
                     int cam_value;
@@ -1292,10 +1292,13 @@ void PcMesher::bundlerPointReader(PointXYZRGBNormalCam &_point, std::ifstream &_
                     }
                     cam2vtx.push_back(cam_value);
                 }
+                camPerVtx_.push_back(cam2vtx);
+                return true;
             } else {
-                _point.camera = -1;
+//                _point.camera = -1;
+                return false;
             }
-            camPerVtx_.push_back(cam2vtx);
+//            camPerVtx_.push_back(cam2vtx);
         }
     }
 }
@@ -1348,9 +1351,10 @@ void PcMesher::bundlerReader(const std::string& _fileName){
         for (unsigned int i = 0; i < nPoints; i++){
 
             PointXYZRGBNormalCam point;
-            bundlerPointReader(point, inputFile);
 
-            cloud->push_back(point);
+            if (bundlerPointReader(point, inputFile)){
+                cloud->push_back(point);
+            }
 
         }
 

@@ -685,7 +685,7 @@ PolygonMesh PcMesher::decimateMesh(const PolygonMesh& _mesh, float _reduction){
 
     // _reduction goes from 0 to 1
 
-    std::cerr << "Decimating mesh" << std::endl;
+    std::cerr << "Decimating mesh a " << (1 - _reduction) * 100  << "%" << std::endl;
 
     PolygonMesh::Ptr meshPtr = boost::make_shared<PolygonMesh>(_mesh);
 

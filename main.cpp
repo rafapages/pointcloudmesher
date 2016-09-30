@@ -7,12 +7,15 @@
 
 #include <boost/make_shared.hpp>
 #include <boost/program_options.hpp>
+#include <boost/program_options/value_semantic.hpp>
 
 typedef enum {ALL, SPLASH, NO_NORMAL, POISSON, FIXLIST, MESH} RunMode;
 
 int main (int argc, char *argv[]){
 
     RunMode mode = ALL;
+    float decimationPrc = 0.0;
+
 
     // Parsing execution options
     try {
@@ -28,6 +31,7 @@ int main (int argc, char *argv[]){
                 ("poisson,p", "Runs just the poisson reconstruction given a point cloud")
                 ("meshtoclean,m", "Loads a mesh and a point cloud and perform operations on the mesh")
                 ("fixlist,l", "Fixes the image list given another list with cameras with wrong texture")
+                ("decimation", po::value<int>()->default_value(90), "Decimation percentage [0-99%]")
                 ;
 
         po::variables_map vm;
@@ -61,6 +65,11 @@ int main (int argc, char *argv[]){
             mode = ALL;
         }
 
+        if (vm.count("decimation")){
+            float decim = (float) vm["decimation"].as<int>();
+            decimationPrc = 1 - decim * 0.01;
+        }
+
     }
 
     catch(std::exception& e) {
@@ -87,17 +96,20 @@ int main (int argc, char *argv[]){
 
     if (mode == ALL){
 
-        if ((argc != 3) && (argc != 4)){
+//        if ((argc != 3) && (argc != 4)){
+        if (argc < 3 || argc > 6) {
             std::cerr << "Wrong number of input paremeters for complete mode" << std::endl;
-            std::cerr << "Usage: " << argv[0] << " [-a] <bundlerfile.out> <image-list.txt>" << std::endl;
+            std::cerr << "Usage: " << argv[0] << " [-a] [--decimation=<value>] <bundlerfile.out> <image-list.txt>" << std::endl;
             return 1;
         }
 
 
-        int index = 1;
-        if (argc == 4){
-            index = 2;
-        }
+//        int index = 1;
+//        if (argc == 4){
+//            index = 2;
+//        }
+
+        int index = argc - 2;
 
         std::string namein(argv[index]);
         std::string listname(argv[index+1]);
@@ -135,15 +147,18 @@ int main (int argc, char *argv[]){
     //------------------------------------------------------------------------
 
     if (mode == NO_NORMAL){
-        if (argc != 5){
+//        if (argc != 5){
+        if (argc < 5 || argc > 7){
             std::cerr << "Wrong number of input paremeters for no-normal mode" << std::endl;
-            std::cerr << "Usage: " << argv[0] << " -n <bundlerfile.out> <image-list.txt> <pointcloudwithnormals.ply>" << std::endl;
+            std::cerr << "Usage: " << argv[0] << " -n [--decimation=<value>] <bundlerfile.out> <image-list.txt> <pointcloudwithnormals.ply>" << std::endl;
             return 1;
         }
 
-        std::string namein(argv[2]);
-        std::string listname(argv[3]);
-        std::string pcname(argv[4]);
+        int index = argc - 3;
+
+        std::string namein(argv[index]);
+        std::string listname(argv[index+1]);
+        std::string pcname(argv[index+2]);
 
         nameout = namein.substr(0, namein.size()-4);
 
@@ -220,7 +235,7 @@ int main (int argc, char *argv[]){
 
 //        cloud.assignCam2Mesh(m, combinedCloudPtr, nameout + "_meshcamera.txt");
         PolygonMesh ms = cloud.smoothMeshLaplacian(m);
-        PolygonMesh simpleM = cloud.decimateMesh(ms, 0.01);
+        PolygonMesh simpleM = cloud.decimateMesh(ms, decimationPrc);
 
         io::savePLYFile(nameout + "_poisson_clean.ply", m);
         io::savePLYFile(nameout + "_poisson_clean_smooth.ply", ms);
@@ -242,15 +257,17 @@ int main (int argc, char *argv[]){
 
     if (mode == POISSON){
 
-        if (argc != 4){
+//        if (argc != 4){
+        if (argc < 4 || argc > 6){
             std::cerr << "Wrong number of input paremeters" << std::endl;
-            std::cerr << "Usage: " << argv[0] << " -p <pointCloud.ply> <bundlermodel.out>" << std::endl;
+            std::cerr << "Usage: " << argv[0] << " -p [--decimation=<value>] <pointCloud.ply> <bundlermodel.out>" << std::endl;
             return 1;
         }
 
         // Reading input parameteres: blunder file and image list
-        cloud.readPLYCloud(argv[2]);
-        cloud.bundlerReadOnlyCameraInfo(argv[3]);
+        int index = argc - 2;
+        cloud.readPLYCloud(argv[index]);
+        cloud.bundlerReadOnlyCameraInfo(argv[index+1]);
 
 
         cloud.getPlaneDefinedByCameras(normal);
@@ -283,7 +300,7 @@ int main (int argc, char *argv[]){
         io::savePLYFile("poisson_clean.ply", m);
 
         PolygonMesh ms = cloud.smoothMeshLaplacian(m);
-        PolygonMesh mss = cloud.decimateMesh(ms, 0.1);
+        PolygonMesh mss = cloud.decimateMesh(ms, decimationPrc);
 
         io::savePLYFile("poisson_clean_smooth.ply", ms);
 
@@ -300,17 +317,19 @@ int main (int argc, char *argv[]){
     if (mode == MESH){
 
 
-        if (argc != 5){
+//        if (argc != 5){
+        if (argc < 5 || argc > 7){
             std::cerr << "Wrong number of input paremeters for mesh cleaning mode" << std::endl;
-            std::cerr << "Usage: " << argv[0] << " -m <meshtoclean.ply> <pointcloudreference.ply> <bundlermodel.out>" << std::endl;
+            std::cerr << "Usage: " << argv[0] << " -m  [--decimation=<value>] <meshtoclean.ply> <pointcloudreference.ply> <bundlermodel.out>" << std::endl;
             return 1;
         }
 
         PolygonMesh mesh;
 
-        cloud.readPLYMesh(argv[2], mesh);
-        cloud.readPLYCloud(argv[3]);
-        cloud.bundlerReadOnlyCameraInfo(argv[4]);
+        int index = argc - 3;
+        cloud.readPLYMesh(argv[index], mesh);
+        cloud.readPLYCloud(argv[index+1]);
+        cloud.bundlerReadOnlyCameraInfo(argv[index+2]);
 
 
         cloud.getPlaneDefinedByCameras(normal);
@@ -337,7 +356,7 @@ int main (int argc, char *argv[]){
         io::savePLYFile("mesh_clean.ply", m);
 
         PolygonMesh ms = cloud.smoothMeshLaplacian(m);
-        PolygonMesh mss = cloud.decimateMesh(ms, 0.1);
+        PolygonMesh mss = cloud.decimateMesh(ms, decimationPrc);
 
         io::savePLYFile("mesh_clean_smooth.ply", ms);
 

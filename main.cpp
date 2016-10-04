@@ -220,14 +220,17 @@ int main (int argc, char *argv[]){
         pcl::geometry::toHalfEdgeMesh(first_mesh, polyMesh); // IMPORTANT!! this is how the conversion is done!
 
         cloud.detectLargestComponent(polyMesh);
-        cloud.openHole(polyMesh, normal);
-
 
         PointCloud<PointXYZRGBNormalCam>::Ptr sampledPtr (new PointCloud<PointXYZRGBNormalCam>);
-
         cloud.downSample(cloud.getPointCloudPtr(0), sampledPtr);
+
+	cloud.openHole(polyMesh, normal);
         cloud.cleanOpenMesh(sampledPtr, polyMesh);
-        cloud.detectLargestComponent(polyMesh);
+	cloud.detectLargestComponent(polyMesh);
+	cloud.openHole(polyMesh, normal);
+        cloud.cleanOpenMesh(sampledPtr, polyMesh);
+	cloud.detectLargestComponent(polyMesh);
+        
 
         PolygonMesh m;
         pcl::geometry::toFaceVertexMesh(polyMesh, m);
